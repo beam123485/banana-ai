@@ -1,6 +1,6 @@
 # 🍌 Banana AI — ระบบจำแนกระดับความสุกของกล้วยจากภาพถ่าย
 
-ด้วยค่าสี HSV และ Logistic Regression
+YOLOv8 หาตำแหน่งกล้วย + ค่าสี HSV และ Logistic Regression บอกระดับความสุก
 Mini Project วิชา AI for EE (67342EPE1)
 
 ## ใช้งาน
@@ -11,23 +11,26 @@ Mini Project วิชา AI for EE (67342EPE1)
 ระบบตอบเป็น 4 ระดับ คือ ดิบ / เริ่มสุก / สุก / งอม พร้อมเปอร์เซ็นต์ความมั่นใจ
 
 ## หลักการทำงาน
-1. ครอปภาพเป็นสี่เหลี่ยมจัตุรัส แล้วย่อเป็น 256×256
+0. **YOLOv8n** (fine-tune จาก banana_data, export เป็น `banana_yolo.onnx` ขนาด 320) หากรอบกล้วยแต่ละลูก แล้วตัดภาพตามกรอบ
+1. ย่อภาพที่ตัดเป็น 256×256
 2. แปลงสี RGB เป็น HSV
 3. ตัดฉากหลัง: เก็บเฉพาะพิกเซลที่ S > 50 หรือ V < 90 แล้วใช้ Morphology (open/close 5×5)
 4. ดึงคุณลักษณะ 6 ค่า: mean และ std ของ H, S, V เฉพาะตัวกล้วย
 5. ปรับสเกล (StandardScaler) แล้วส่งเข้า Logistic Regression (Softmax) เพื่อคำนวณความน่าจะเป็นของแต่ละระดับ
 
-โมเดลเทรนใน Google Colab (`Banana_Ripeness_HSV_LogReg.ipynb`) แล้วนำน้ำหนักมาฝังในหน้าเว็บ
+โมเดลเทรนด้วย `train_local.py` (RTX 5060) ผลทดสอบ: YOLO mAP50 = 0.995, mAP50-95 = 0.858 · ความสุก accuracy = 89.6%
+YOLO รันในเบราว์เซอร์ด้วย onnxruntime-web
 การประมวลผลทั้งหมดเกิดขึ้นในเบราว์เซอร์ ภาพไม่ถูกส่งไปเซิร์ฟเวอร์
 
 ## Dataset
-BananaImageBD — Banana Ripeness Detection Dataset, Mendeley Data
+- banana_data (ภาพกล้วยบนโต๊ะไม้ พร้อมกรอบ YOLO 2 คลาส Raw/Ripe)
+- BananaImageBD — Banana Ripeness Detection Dataset, Mendeley Data
 https://data.mendeley.com/datasets/ptfscwtnyz (DOI: 10.17632/ptfscwtnyz.2)
 
 ## ข้อจำกัด
-- เหมาะกับกล้วย 1 ลูกบนพื้นสีขาวหรือสีอ่อน
+- YOLO เทรนจากภาพบนโต๊ะไม้เป็นหลัก อาจตีกรอบผิดกับวัตถุสีเขียวรูปร่างคล้ายกล้วย เช่น ใบตอง
+- กล้วยที่ติดกันเป็นหวีแน่นอาจถูกตีกรอบรวม
 - พันธุ์ที่เปลือกยังเขียวแม้สุกแล้ว (เช่น กล้วยหอมเขียว) อาจถูกทายว่าดิบ
-- ฉากหลังที่มีสีสดจะทำให้การตัดฉากหลังคลาดเคลื่อน
 
 ## อัปเดตโมเดล
-เทรนใหม่ใน Colab แล้วคัดลอก JSON ที่ได้จากเซลล์ export ไปแทนค่า `const MODEL = {...}` ใน `index.html`
+รัน `py train_local.py` ใหม่ แล้วอัป `banana_yolo.onnx` ทับ และคัดลอก `ripeness_weights.json` ไปแทนค่า `const MODEL = {...}` ใน `index.html`
