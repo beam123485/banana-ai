@@ -267,7 +267,8 @@ function ripeness(x1, y1, x2, y2) {
   const bx = Math.min(frame.width, x2 + p*w), by = Math.min(frame.height, y2 + p*h);
   cctx.drawImage(frame, ax, ay, bx - ax, by - ay, 0, 0, SIZE, SIZE);
   const {features} = extractFeatures(cctx.getImageData(0, 0, SIZE, SIZE).data);
-  return {prob: predict(features, MODEL), days: daysLeft(features)};
+  const {prob, adjusted} = greenCheck(predict(features, MODEL), features);
+  return {prob, adjusted, days: daysLeft(features)};
 }
 
 function daysLeft(features) {
@@ -316,12 +317,85 @@ function blobBox() {
   return {x1: best.x1 / k, y1: best.y1 / k, x2: Math.min(W, best.x2 / k), y2: Math.min(H, best.y2 / k), score: 0, blob: true};
 }
 
+// หากล้วยที่ YOLO มองข้าม (เช่น ลูกที่โดนฉลากบัง หรือวางชิดกัน) จากบริเวณสีกล้วยที่ยังไม่อยู่ในกรอบไหนเลย
+// แยกหากลุ่มสีเขียว (H>=31) กับสีเหลือง (H<31) คนละรอบ เพื่อไม่ให้ลูกเขียวกับลูกเหลืองที่ชิดกันรวมเป็นกรอบเดียว
+function extraBoxes(boxes) {
+  if (!boxes.length) return [];
+  const W = frame.width, H = frame.height, k = 128 / Math.max(W, H);
+  const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k)), N = w * h;
+  const c = mk(w, h), x = c.getContext('2d', {willReadFrequently:true}); x.drawImage(frame, 0, 0, w, h);
+  const d = x.getImageData(0, 0, w, h).data, hue = new Uint8Array(N), base = new Uint8Array(N), cover = new Uint8Array(N);
+  for (let i = 0; i < N; i++) { const [hh, s, v] = rgb2hsv(d[4*i], d[4*i+1], d[4*i+2]); hue[i] = hh; base[i] = (hh >= 15 && hh <= 45 && s > 70 && v > 90) ? 1 : 0; }
+  for (const b of boxes) { const bw = b.x2 - b.x1, bh = b.y2 - b.y1;
+    const X1 = Math.max(0, Math.floor((b.x1 - .03*bw) * k)), X2 = Math.min(w - 1, Math.ceil((b.x2 + .03*bw) * k));
+    const Y1 = Math.max(0, Math.floor((b.y1 - .03*bh) * k)), Y2 = Math.min(h - 1, Math.ceil((b.y2 + .03*bh) * k));
+    for (let yy = Y1; yy <= Y2; yy++) for (let xx = X1; xx <= X2; xx++) cover[yy*w+xx] = 1; }
+  const morph = (src, r, dil) => {            // dilate / erode แบบสี่เหลี่ยม (2r+1)
+    const t = new Uint8Array(N), o = new Uint8Array(N);
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) { let v = dil ? 0 : 1;
+      for (let q = -r; q <= r; q++) { const X = xx + q; if (X < 0 || X >= w) continue; if (dil ? src[yy*w+X] : !src[yy*w+X]) { v = dil ? 1 : 0; break; } } t[yy*w+xx] = v; }
+    for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) { let v = dil ? 0 : 1;
+      for (let q = -r; q <= r; q++) { const Y = yy + q; if (Y < 0 || Y >= h) continue; if (dil ? t[Y*w+xx] : !t[Y*w+xx]) { v = dil ? 1 : 0; break; } } o[yy*w+xx] = v; }
+    return o; };
+  const med = a => { const s = [...a].sort((p, q) => p - q), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m-1] + s[m]) / 2; };
+  const ref = med(boxes.map(b => (b.x2-b.x1)*(b.y2-b.y1)*k*k)), mh = med(boxes.map(b => (b.y2-b.y1)*k)), mw = med(boxes.map(b => (b.x2-b.x1)*k));
+  const out = [];
+  for (const green of [true, false]) {
+    let m = new Uint8Array(N);
+    for (let i = 0; i < N; i++) m[i] = base[i] && !cover[i] && ((hue[i] >= 31) === green) ? 1 : 0;
+    m = morph(morph(m, 2, true), 2, false);   // close 5x5
+    m = morph(morph(m, 1, false), 1, true);   // open 3x3 ตัดจุดเล็กๆ
+    const lab = new Int32Array(N); let comps = [], id = 0;
+    for (let i = 0; i < N; i++) if (m[i] && !lab[i]) {
+      id++; const st = [i]; lab[i] = id; let cnt = 0, x1 = w, y1 = h, x2 = 0, y2 = 0;
+      while (st.length) { const p = st.pop(), px = p % w, py = (p / w) | 0; cnt++;
+        if (px < x1) x1 = px; if (px > x2) x2 = px; if (py < y1) y1 = py; if (py > y2) y2 = py;
+        for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) { const nx = px + dx, ny = py + dy;
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue; const q = ny * w + nx; if (m[q] && !lab[q]) { lab[q] = id; st.push(q); } } }
+      comps.push({x1, y1, x2: x2 + 1, y2: y2 + 1, cnt});
+    }
+    for (let merged = true; merged; ) {        // ลูกที่โดนฉลากคาดกลาง → ส่วนบน/ล่างที่ตรงกันในแนวนอนรวมเป็นลูกเดียว
+      merged = false;
+      for (let i = 0; i < comps.length && !merged; i++) for (let j = i + 1; j < comps.length; j++) {
+        const a = comps[i], b = comps[j], ov = Math.min(a.x2, b.x2) - Math.max(a.x1, b.x1);
+        if (ov > 0.6 * Math.min(a.x2 - a.x1, b.x2 - b.x1)) {
+          comps[i] = {x1: Math.min(a.x1, b.x1), y1: Math.min(a.y1, b.y1), x2: Math.max(a.x2, b.x2), y2: Math.max(a.y2, b.y2), cnt: a.cnt + b.cnt};
+          comps.splice(j, 1); merged = true; break; } }
+    }
+    for (const b of comps) {
+      const bw = b.x2 - b.x1, bh = b.y2 - b.y1, ea = bw * bh;
+      if (b.cnt < 0.015 * N || ea < 0.35 * ref) continue;                 // เล็กเกินไป
+      if (bh < 0.7 * mh || bh > 1.4 * mh || bw > 1.5 * mw) continue;       // ขนาดต้องใกล้เคียงกล้วยที่ YOLO เจอ
+      if ((b.x1 <= 0) + (b.y1 <= 0) + (b.x2 >= w) + (b.y2 >= h) >= 2) continue;   // ชนขอบภาพหลายด้าน = น่าจะเป็นฉากหลัง/ใบตอง
+      const ov = boxes.reduce((a, q) => a + Math.max(0, Math.min(b.x2, q.x2*k) - Math.max(b.x1, q.x1*k)) * Math.max(0, Math.min(b.y2, q.y2*k) - Math.max(b.y1, q.y1*k)), 0);
+      if (ov > 0.4 * ea) continue;
+      out.push({x1: b.x1 / k, y1: b.y1 / k, x2: Math.min(W, b.x2 / k), y2: Math.min(H, b.y2 / k), score: 0, extra: true});
+    }
+  }
+  return out;
+}
+
+// กฎตรวจสัดส่วนสีเขียว: ในชุดเทรน กล้วย "สุก" มีพิกเซลสีเขียวไม่เกิน ~5% และ "เริ่มสุก" ไม่เกิน ~10%
+// กล้วยเขียวอ่อนที่ถ่ายในแสงสว่าง (ไม่เหมือนรูปกล้วยดิบในชุดเทรนที่มืดกว่า) โมเดลอาจทายว่าสุก → ย้ายความน่าจะเป็นไปที่ ดิบ/เริ่มสุก
+function greenCheck(prob, features) {
+  const gr = features[8], k = prob.indexOf(Math.max(...prob)), name = MODEL.classes[k];
+  let tgt = -1;
+  if (gr >= 0.4 && name !== 'Green') tgt = 0;
+  else if (gr >= 0.2 && (name === 'Ripe' || name === 'Overripe')) tgt = 1;
+  if (tgt < 0) return {prob, adjusted: null};
+  const p = [...prob], from = name;
+  const moved = p[2] + p[3] + (tgt === 0 ? p[1] : 0);
+  p[2] = p[3] = 0; if (tgt === 0) p[1] = 0; p[tgt] += moved;
+  return {prob: p, adjusted: {from, fromP: Math.max(...prob), green: gr}};
+}
+
 async function analyze() {
   let boxes = await detect(), fallback = false;
-  if (!boxes.length) { const b = blobBox(); if (b) boxes = [b]; }
+  if (boxes.length) boxes = boxes.concat(extraBoxes(boxes));
+  else { const b = blobBox(); if (b) boxes = [b]; }
   if (!boxes.length) { fallback = true; boxes = [{x1:0, y1:0, x2:frame.width, y2:frame.height, score:0}]; }
-  const res = boxes.map(b => { const {prob, days} = ripeness(b.x1, b.y1, b.x2, b.y2), k = prob.indexOf(Math.max(...prob));
-                               return {...b, prob, days, name: MODEL.classes[k]}; });
+  const res = boxes.map(b => { const {prob, adjusted, days} = ripeness(b.x1, b.y1, b.x2, b.y2), k = prob.indexOf(Math.max(...prob));
+                               return {...b, prob, adjusted, days, name: MODEL.classes[k]}; });
   res.sort((a, b) => a.x1 - b.x1);
   return {res, fallback};
 }
@@ -333,7 +407,11 @@ function draw(res, fallback) {
   const lw = Math.max(3, frame.width / 220), fs = Math.max(16, frame.width / 32);
   vctx.font = `600 ${fs}px "IBM Plex Sans Thai", sans-serif`;
   res.forEach((r, i) => {
-    const L = LABELS[r.name], ds = daysText(r).short, txt = `#${i+1} ${L.th} ${(Math.max(...r.prob)*100).toFixed(0)}%${ds ? ' · ' + ds : ''}`;
+    const L = LABELS[r.name], ds = daysText(r).short;
+    // ป้ายชื่อยาวเกินที่ว่าง (กล้วยวางชิดกันหลายลูก) → ย่อเหลือ "#1 ดิบ" หรือ "#1" ไม่ให้ทับป้ายลูกถัดไป
+    const room = res.slice(i + 1).reduce((m, q) => (q.x1 > r.x1 && Math.abs(q.y1 - r.y1) < fs * 2) ? Math.min(m, q.x1 - r.x1) : m, frame.width - r.x1);
+    let txt = `#${i+1} ${L.th} ${(Math.max(...r.prob)*100).toFixed(0)}%${ds ? ' · ' + ds : ''}`;
+    for (const t of [`#${i+1} ${L.th} ${(Math.max(...r.prob)*100).toFixed(0)}%`, `#${i+1} ${L.th}`, `#${i+1}`]) if (vctx.measureText(txt).width + 12 > room) txt = t;
     vctx.strokeStyle = L.color; vctx.lineWidth = lw; vctx.strokeRect(r.x1, r.y1, r.x2 - r.x1, r.y2 - r.y1);
     const tw = vctx.measureText(txt).width + 12, ty = Math.max(0, r.y1 - fs - 8);
     vctx.fillStyle = L.color; vctx.fillRect(r.x1 - lw/2, ty, tw, fs + 8);
@@ -352,7 +430,8 @@ function showResults(res, fallback) {
     return `<div class="item"><h3 style="color:${L.color}">${fallback ? 'ทั้งภาพ' : '#' + (i+1)} · ${L.th} (${r.name}) ${(Math.max(...r.prob)*100).toFixed(1)}%</h3>` +
       `<div class="days">${daysText(r).long}</div>` +
       MODEL.classes.map((c, j) => `<div class="bar"><span>${LABELS[c].th}</span><div class="track"><div class="fill" style="width:${(r.prob[j]*100).toFixed(1)}%;background:${LABELS[c].color}"></div></div><span>${(r.prob[j]*100).toFixed(1)}%</span></div>`).join('') +
-      (fallback ? '' : `<div class="sub" style="font-size:13px">${r.blob ? 'YOLO ไม่เห็นกล้วย (อาจอยู่ในแพ็กเกจ) จึงหาจากบริเวณสีกล้วยแทน' : 'YOLO มั่นใจว่าเป็นกล้วย ' + (r.score*100).toFixed(0) + '%'}</div>`) + '</div>';
+      (r.adjusted ? `<div class="sub" style="font-size:13px">🟢 เปลือกยังเป็นสีเขียว ${(r.adjusted.green*100).toFixed(0)}% จึงปรับผล (โมเดลเดิมทาย ${LABELS[r.adjusted.from].th} ${(r.adjusted.fromP*100).toFixed(0)}%)</div>` : '') +
+      (fallback ? '' : `<div class="sub" style="font-size:13px">${r.blob ? 'YOLO ไม่เห็นกล้วย (อาจอยู่ในแพ็กเกจ) จึงหาจากบริเวณสีกล้วยแทน' : r.extra ? 'YOLO มองข้ามลูกนี้ (อาจโดนฉลากบังหรือวางชิดลูกอื่น) จึงหาเพิ่มจากบริเวณสีกล้วย' : 'YOLO มั่นใจว่าเป็นกล้วย ' + (r.score*100).toFixed(0) + '%'}</div>`) + '</div>';
   }).join('');
   const w = $('warn'), msgs = [];
   if (fallback) msgs.push(session ? '⚠️ YOLO ไม่พบกล้วยในภาพ จึงวิเคราะห์สีทั้งภาพแทน ผลอาจคลาดเคลื่อน' : '⚠️ ไม่ได้ใช้ YOLO จึงวิเคราะห์สีทั้งภาพ');
