@@ -109,7 +109,7 @@ const CNN_SIZE = 224;
 // (ค่าเหล่านี้เลือกจากการทดสอบ: ชุด test 96.8%, ชุดจำลองแพ็กเกจ 93.6%, รูปจริง 34/35)
 const FUSE = {w_cnn: 0.8, green_to_unripe: 0.4, green_to_semi: 0.2, over_veto: 0.1, mixed_yellow: 0.3, mixed_cnn: 0.9};
 const BANANA_ROW = 4 + 46;             // แถวคะแนนของคลาส banana (COCO id 46)
-const CONF = 0.3;
+const CONF = 0.2;
 const CAM_CROP = 0.8;                   // กล้อง: ใช้ 80% ตรงกลางของภาพ (สี่เหลี่ยมจัตุรัส)
 // ==============================================================================
 const LABELS = {
@@ -335,7 +335,13 @@ function daysLeft(features) {
   return Math.max(0, DAYS.max_day - Math.min(DAYS.max_day, Math.max(0, day)));
 }
 function daysText(r) {
-  if (r.name === 'Green' || r.name === 'Semi-ripe') return {short: '', long: '⏳ ยังไม่สุก รออีกสักระยะ'};
+  if (r.name === 'Green' || r.name === 'Semi-ripe') {
+    // ประมาณวันที่จะสุก: ดัชนีความสุก e (0=ดิบสนิท, 1=เริ่มสุก, 2=สุก) แล้วประมาณเชิงเส้นเป็นช่วง ดิบสนิท ~6 วัน → เริ่มสุก ~2 วัน → สุก 0 วัน (กล้วยที่อุณหภูมิห้อง)
+    const p = r.prob, e = Math.min(2, p[1] + 2 * (p[2] + p[3]));
+    const d = e <= 1 ? 6 - 4 * e : 2 * (2 - e), lo = Math.max(0, Math.round(d - 1)), hi = Math.round(d + 1);
+    if (d < 1) return {short: '<1 วัน', long: '⏳ ใกล้สุกแล้ว คาดว่าสุกภายใน 1 วัน (ที่อุณหภูมิห้อง)'};
+    return {short: `สุกใน ~${Math.round(d)} วัน`, long: `⏳ ยังไม่สุก คาดว่าจะสุกในอีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง ประมาณการจากสีเปลือก)`};
+  }
   if (r.name === 'Overripe') return {short: 'ทำขนม',
     long: '🍰 เหมาะทำขนม/สมูตตี้ — เปลือกดำไม่ได้แปลว่าเสีย ให้เช็กเนื้อใน กลิ่น และรา ก่อนกิน'};
   const d = r.days, lo = Math.max(0, Math.floor(d - DAYS.mae)), hi = Math.min(DAYS.max_day, Math.ceil(d + DAYS.mae));
