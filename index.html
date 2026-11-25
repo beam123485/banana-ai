@@ -102,6 +102,7 @@ const MODEL = {"classes": ["Green", "Semi-ripe", "Ripe", "Overripe"], "features"
 const DAYS = {"model": "Linear (\u0e2a\u0e31\u0e14\u0e2a\u0e48\u0e27\u0e19\u0e08\u0e38\u0e14/\u0e2a\u0e35 3 \u0e1f\u0e35\u0e40\u0e08\u0e2d\u0e23\u0e4c)", "mae": 0.759, "max_day": 7, "idx": [6, 7, 9], "mean": [0.322971, 0.220992, 0.452586], "scale": [0.162477, 0.137463, 0.256925], "coef": [-0.703413, -0.760876, -3.18726], "intercept": 3.278788};
 const YOLO_PARTS = ['yolo_s416.part1', 'yolo_s416.part2', 'yolo_s416.part3', 'yolo_s416.part4'];   // YOLOv8s (COCO) แบ่งเป็น 4 ไฟล์ (GitHub อัปผ่านเว็บไฟล์ใหญ่ไม่ได้) — ใช้เฉพาะคลาส banana
 const YOLO_SIZE = 416;
+const LIVE_YOLO = 'yolo_coco.onnx';  // YOLOv8n ตัวเล็ก ใช้ตอนส่องกล้องสด (เร็วกว่า YOLOv8s ~3 เท่า)
 const CNN_FILE = 'ripeness_cnn.onnx';  // CNN (YOLOv8n-cls) เทรนเองจาก train_cnn.py
 const CNN_SIZE = 224;
 // ผสมผล: CNN 80% + HSV/Logistic Regression 20% แล้วตรวจด้วยกฎสีเขียว + กฎกันทาย "งอม" เกินจริง
@@ -245,7 +246,8 @@ const frame = mk(1, 1), fctx = frame.getContext('2d', {willReadFrequently:true})
 const lb = mk(YOLO_SIZE, YOLO_SIZE), lctx = lb.getContext('2d', {willReadFrequently:true});
 const cropC = mk(SIZE, SIZE), cctx = cropC.getContext('2d', {willReadFrequently:true});
 const cnnC = mk(CNN_SIZE, CNN_SIZE), nctx = cnnC.getContext('2d', {willReadFrequently:true});
-let cnnSession = null;
+let cnnSession = null, liveSession = null, liveLoading = null, liveTask = null;
+const snapC = mk(1, 1), snapX = snapC.getContext('2d');
 const view = $('view'), vctx = view.getContext('2d');
 let session = null, stream = null, live = false, busy = false, lastResults = [];
 
@@ -270,9 +272,9 @@ async function loadModel() {
   $('camBtn').disabled = false;
 }
 
-async function detect() {                     // ใช้ภาพใน frame canvas
+async function detect(sess = session) {       // ใช้ภาพใน frame canvas
   const W = frame.width, H = frame.height;
-  if (!session) return [];
+  if (!sess) return [];
   const sc = Math.min(YOLO_SIZE / W, YOLO_SIZE / H), nw = Math.round(W * sc), nh = Math.round(H * sc);
   const px = Math.floor((YOLO_SIZE - nw) / 2), py = Math.floor((YOLO_SIZE - nh) / 2);
   lctx.fillStyle = 'rgb(114,114,114)'; lctx.fillRect(0, 0, YOLO_SIZE, YOLO_SIZE);
@@ -280,8 +282,8 @@ async function detect() {                     // ใช้ภาพใน frame 
   const d = lctx.getImageData(0, 0, YOLO_SIZE, YOLO_SIZE).data, N = YOLO_SIZE * YOLO_SIZE;
   const t = new Float32Array(3 * N);
   for (let i = 0; i < N; i++) { t[i] = d[4*i] / 255; t[N+i] = d[4*i+1] / 255; t[2*N+i] = d[4*i+2] / 255; }
-  const out = await session.run({ [session.inputNames[0]]: new ort.Tensor('float32', t, [1, 3, YOLO_SIZE, YOLO_SIZE]) });
-  const o = out[session.outputNames[0]];
+  const out = await sess.run({ [sess.inputNames[0]]: new ort.Tensor('float32', t, [1, 3, YOLO_SIZE, YOLO_SIZE]) });
+  const o = out[sess.outputNames[0]];
   return yoloDecode(o.data, o.dims[2], CONF, sc, px, py, W, H, BANANA_ROW);
 }
 
@@ -440,8 +442,8 @@ function fuseRules(prob, hsv, features, cnn) {
   return {prob: p, adjusted: why ? {why, from, fromP, green: gr} : null};
 }
 
-async function analyze() {
-  let boxes = await detect(), fallback = false;
+async function analyze(fast = false) {
+  let boxes = await detect(fast && liveSession ? liveSession : session), fallback = false;
   if (boxes.length) boxes = boxes.concat(extraBoxes(boxes));
   else { const b = blobBox(); if (b) boxes = [b]; }
   if (!boxes.length) { fallback = true; boxes = [{x1:0, y1:0, x2:frame.width, y2:frame.height, score:0}]; }
@@ -453,16 +455,16 @@ async function analyze() {
 }
 
 let showMap = false, lastDraw = null;
-function draw(res, fallback) {
+function draw(res, fallback, base = frame) {
   lastDraw = [res, fallback];
-  view.width = frame.width; view.height = frame.height;
-  vctx.drawImage(frame, 0, 0);
+  if (view.width !== base.width || view.height !== base.height) { view.width = base.width; view.height = base.height; }
+  vctx.drawImage(base, 0, 0);
   $('mapBtn').style.display = res.length ? 'block' : 'none';
   if (showMap) {                                    // หรี่ภาพเดิม แล้วระบายแผนที่สีเฉพาะในกรอบ
     vctx.fillStyle = 'rgba(20,16,10,0.6)'; vctx.fillRect(0, 0, view.width, view.height);
     for (const r of res) if (r.cmap) {
       vctx.save(); vctx.beginPath(); vctx.rect(r.x1, r.y1, r.x2 - r.x1, r.y2 - r.y1); vctx.clip();
-      vctx.globalAlpha = 0.35; vctx.drawImage(frame, 0, 0); vctx.globalAlpha = 1;
+      vctx.globalAlpha = 0.35; vctx.drawImage(base, 0, 0); vctx.globalAlpha = 1;
       vctx.drawImage(r.cmap.canvas, r.cmap.ax, r.cmap.ay, r.cmap.bw, r.cmap.bh); vctx.restore();
     }
   }
@@ -505,26 +507,44 @@ function showResults(res, fallback) {
   w.style.display = msgs.length ? 'block' : 'none'; w.innerHTML = msgs.join('<br>');
 }
 
-function loadFrame(src, sw, sh, crop) {
+const liveBase = mk(1, 1), lbctx = liveBase.getContext('2d');
+function loadFrame(src, sw, sh, crop, cv = frame, cx = fctx) {
   let sx = 0, sy = 0;
   if (crop) {                                   // กล้อง: ครอปสี่เหลี่ยมจัตุรัสตรงกลาง (ส่วนที่ใช้ตรวจ)
     const side = Math.min(sw, sh) * CAM_CROP; sx = (sw - side) / 2; sy = (sh - side) / 2; sw = sh = side;
   }
   const k = Math.min(1, 1024 / Math.max(sw, sh));
-  frame.width = Math.round(sw * k); frame.height = Math.round(sh * k);
-  fctx.fillStyle = '#fff'; fctx.fillRect(0, 0, frame.width, frame.height);   // PNG พื้นใส → พื้นขาว
-  fctx.drawImage(src, sx, sy, sw, sh, 0, 0, frame.width, frame.height);
+  const W = Math.round(sw * k), H = Math.round(sh * k);
+  if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+  cx.fillStyle = '#fff'; cx.fillRect(0, 0, W, H);   // PNG พื้นใส → พื้นขาว
+  cx.drawImage(src, sx, sy, sw, sh, 0, 0, W, H);
 }
 
-async function liveLoop() {
+// โหมดกล้อง: แยก 2 ลูป — ลูปแสดงภาพ (ทุกเฟรม ลื่น) กับลูปวิเคราะห์ (ทำเมื่อว่าง ด้วย YOLO ตัวเล็ก)
+function renderLoop() {
   if (!live) return;
-  if (!busy && $('video').videoWidth) {
-    busy = true;
-    const v = $('video'); loadFrame(v, v.videoWidth, v.videoHeight, true);
-    const {res, fallback} = await analyze(); lastResults = [res, fallback];
-    draw(res, fallback); busy = false;
+  const v = $('video');
+  if (v.videoWidth) {
+    loadFrame(v, v.videoWidth, v.videoHeight, true, liveBase, lbctx);
+    draw(lastResults.length ? lastResults[0] : [], lastResults.length ? lastResults[1] : true, liveBase);
   }
-  requestAnimationFrame(liveLoop);
+  requestAnimationFrame(renderLoop);
+}
+async function analyzeLoop() {
+  while (live) {
+    const v = $('video');
+    if (v.videoWidth) {
+      loadFrame(v, v.videoWidth, v.videoHeight, true);
+      liveTask = analyze(true); const r = await liveTask; liveTask = null;
+      if (live) lastResults = [r.res, r.fallback];
+    }
+    await new Promise(ok => setTimeout(ok, 30));   // เว้นจังหวะให้เบราว์เซอร์วาดภาพ
+  }
+}
+function loadLiveModel() {
+  if (!liveLoading) liveLoading = ort.InferenceSession.create(LIVE_YOLO, {executionProviders: ['wasm']})
+    .then(s => liveSession = s).catch(e => console.warn('live YOLO load failed, ใช้ตัวหลัก', e));
+  return liveLoading;
 }
 
 function stopCam() {
@@ -539,18 +559,30 @@ $('camBtn').onclick = async () => {
     stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment', width:{ideal:1280}}, audio:false});
     $('video').srcObject = stream; await $('video').play();
     $('view').style.display = 'block'; $('shoot').style.display = 'block'; $('camBtn').textContent = '✖ ปิดกล้อง';
-    live = true; liveLoop();
+    lastResults = []; live = true; renderLoop();
+    setStatus('⏳ กำลังเตรียมโหมดกล้องสด…'); await loadLiveModel(); setStatus('✅ โหมดกล้องสด — กด "หยุดภาพและดูผล" เพื่อวิเคราะห์ละเอียด', 'ok');
+    analyzeLoop();
   } catch (e) { alert('เปิดกล้องไม่ได้: ' + e.message + '\nลองกด "อัปโหลดรูป" แทน'); }
 };
-$('shoot').onclick = () => {
-  const r = lastResults; stopCam();
-  if (r.length) { showResults(r[0], r[1]); $('result').scrollIntoView({behavior:'smooth'}); }
+$('shoot').onclick = async () => {               // หยุดภาพ แล้ววิเคราะห์ใหม่ด้วย YOLOv8s ตัวหลัก (แม่นกว่า)
+  const v = $('video');
+  if (v.videoWidth) loadFrame(v, v.videoWidth, v.videoHeight, true, snapC, snapX);   // เก็บภาพไว้ก่อนปิดกล้อง
+  stopCam(); busy = false;
+  if (liveTask) await liveTask.catch(() => {});                                       // รอให้การวิเคราะห์สดที่ค้างอยู่จบก่อน
+  frame.width = snapC.width; frame.height = snapC.height; fctx.drawImage(snapC, 0, 0);
+  setStatus('🔍 กำลังวิเคราะห์ละเอียด…');
+  const {res, fallback} = await analyze();
+  draw(res, fallback); showResults(res, fallback);
+  setStatus('✅ โมเดลพร้อมใช้งาน', 'ok');
+  $('result').scrollIntoView({behavior:'smooth'});
 };
 $('file').onchange = e => {
   const f = e.target.files[0]; if (!f) return;
   stopCam();
+  const waitLive = liveTask ? liveTask.catch(() => {}) : Promise.resolve();
   const im = new Image();
   im.onload = async () => {
+    await waitLive;
     loadFrame(im, im.naturalWidth, im.naturalHeight); URL.revokeObjectURL(im.src);
     setStatus('🔍 กำลังวิเคราะห์…');
     const {res, fallback} = await analyze();
