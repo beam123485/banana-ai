@@ -267,10 +267,15 @@ async function loadModel() {
     setStatus(cnnSession ? '✅ โมเดลพร้อมใช้งาน (YOLOv8s + CNN + HSV)' : '✅ โมเดลพร้อมใช้งาน (ไม่มี CNN — ใช้ HSV อย่างเดียว)', 'ok');
   } catch (e) {
     console.error(e);
-    setStatus('⚠️ โหลดโมเดล YOLO ไม่สำเร็จ — จะวิเคราะห์ทั้งภาพแทน (' + e.message + ')', 'err');
+    try {                                         // มือถือบางเครื่องหน่วยความจำไม่พอสำหรับ YOLOv8s → ใช้ตัวเล็กแทน
+      session = await loadLiveModel();
+      if (!session) throw e;
+      setStatus('✅ โมเดลพร้อมใช้งาน (โหมดสำรอง: YOLO ตัวเล็ก — โหลดตัวหลักไม่สำเร็จ)', 'ok');
+    } catch (e2) { setStatus('⚠️ โหลดโมเดล YOLO ไม่สำเร็จ — จะหากล้วยจากสีแทน (' + e.message + ')', 'err'); }
   }
   $('camBtn').disabled = false;
 }
+let modelReady = null;
 
 async function detect(sess = session) {       // ใช้ภาพใน frame canvas
   const W = frame.width, H = frame.height;
@@ -339,14 +344,13 @@ function daysText(r) {
 }
 
 
-// ตัวหากล้วยสำรอง: ถ้า YOLO ไม่เจอ (เช่น กล้วยในถุง/แพ็กเกจ) ให้หาก้อน "สีกล้วย" (เหลือง/เขียว) ที่ใหญ่ที่สุด
-function blobBox() {
+// ตัวหากล้วยสำรอง: ถ้า YOLO ไม่เจอ/ไม่มี ให้หาก้อน "สีกล้วย" แยกเขียว (H>=31) กับเหลืองคนละรอบ → ได้หลายกรอบ (เช่น หวีเหลืองกับหวีเขียวในเครือเดียวกัน)
+function blobBoxes() {
   const W = frame.width, H = frame.height, k = 128 / Math.max(W, H);
-  const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k));
+  const w = Math.max(1, Math.round(W * k)), h = Math.max(1, Math.round(H * k)), N = w * h;
   const c = mk(w, h), x = c.getContext('2d', {willReadFrequently:true}); x.drawImage(frame, 0, 0, w, h);
-  const d = x.getImageData(0, 0, w, h).data, N = w * h;
-  let m = new Uint8Array(N);
-  for (let i = 0; i < N; i++) { const [hh, s, v] = rgb2hsv(d[4*i], d[4*i+1], d[4*i+2]); m[i] = (hh >= 15 && hh <= 45 && s > 70 && v > 90) ? 1 : 0; }
+  const d = x.getImageData(0, 0, w, h).data, hue = new Uint8Array(N), base = new Uint8Array(N);
+  for (let i = 0; i < N; i++) { const [hh, s, v] = rgb2hsv(d[4*i], d[4*i+1], d[4*i+2]); hue[i] = hh; base[i] = (hh >= 15 && hh <= 45 && s > 70 && v > 90) ? 1 : 0; }
   const morphR = (src, dil) => {           // 5x5 บน W x H
     const t = new Uint8Array(N), o = new Uint8Array(N);
     for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) { let r = dil ? 0 : 1;
@@ -354,18 +358,29 @@ function blobBox() {
     for (let y = 0; y < h; y++) for (let xx = 0; xx < w; xx++) { let r = dil ? 0 : 1;
       for (let q = -2; q <= 2; q++) { const Y = y + q; if (Y < 0 || Y >= h) continue; const vv = t[Y*w+xx]; if (dil ? vv : !vv) { r = dil ? 1 : 0; break; } } o[y*w+xx] = r; }
     return o; };
-  m = morphR(morphR(m, true), false);      // close
-  const lab = new Int32Array(N); let best = null, id = 0;
-  for (let i = 0; i < N; i++) if (m[i] && !lab[i]) {
-    id++; const st = [i]; lab[i] = id; let cnt = 0, x1 = w, y1 = h, x2 = 0, y2 = 0;
-    while (st.length) { const p = st.pop(), px = p % w, py = (p / w) | 0; cnt++;
-      if (px < x1) x1 = px; if (px > x2) x2 = px; if (py < y1) y1 = py; if (py > y2) y2 = py;
-      for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) { const nx = px + dx, ny = py + dy;
-        if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue; const q = ny * w + nx; if (m[q] && !lab[q]) { lab[q] = id; st.push(q); } } }
-    if (!best || cnt > best.cnt) best = {cnt, x1, y1, x2: x2 + 1, y2: y2 + 1};
+  const comps = [];
+  for (const green of [false, true]) {
+    let m = new Uint8Array(N);
+    for (let i = 0; i < N; i++) m[i] = base[i] && ((hue[i] >= 31) === green) ? 1 : 0;
+    m = morphR(morphR(m, true), false);      // close
+    const lab = new Int32Array(N); let id = 0;
+    for (let i = 0; i < N; i++) if (m[i] && !lab[i]) {
+      id++; const st = [i]; lab[i] = id; let cnt = 0, x1 = w, y1 = h, x2 = 0, y2 = 0;
+      while (st.length) { const p = st.pop(), px = p % w, py = (p / w) | 0; cnt++;
+        if (px < x1) x1 = px; if (px > x2) x2 = px; if (py < y1) y1 = py; if (py > y2) y2 = py;
+        for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1]]) { const nx = px + dx, ny = py + dy;
+          if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue; const q = ny * w + nx; if (m[q] && !lab[q]) { lab[q] = id; st.push(q); } } }
+      if (cnt >= 0.03 * N) comps.push({cnt, x1, y1, x2: x2 + 1, y2: y2 + 1});
+    }
   }
-  if (!best || best.cnt < 0.02 * N) return null;
-  return {x1: best.x1 / k, y1: best.y1 / k, x2: Math.min(W, best.x2 / k), y2: Math.min(H, best.y2 / k), score: 0, blob: true};
+  comps.sort((p, q) => q.cnt - p.cnt);
+  const out = [];
+  for (const c of comps) {                    // ก้อนเล็กที่อยู่ในกรอบของก้อนใหญ่กว่า (เช่น ก้านเขียวของหวีเหลือง) ไม่ต้องแยกเป็นกรอบใหม่
+    const ea = (c.x2 - c.x1) * (c.y2 - c.y1);
+    const inside = out.some(o => Math.max(0, Math.min(c.x2, o.x2) - Math.max(c.x1, o.x1)) * Math.max(0, Math.min(c.y2, o.y2) - Math.max(c.y1, o.y1)) > 0.5 * ea);
+    if (!inside && out.length < 4) out.push(c);
+  }
+  return out.map(c => ({x1: c.x1 / k, y1: c.y1 / k, x2: Math.min(W, c.x2 / k), y2: Math.min(H, c.y2 / k), score: 0, blob: true}));
 }
 
 // หากล้วยที่ YOLO มองข้าม (เช่น ลูกที่โดนฉลากบัง หรือวางชิดกัน) จากบริเวณสีกล้วยที่ยังไม่อยู่ในกรอบไหนเลย
@@ -434,7 +449,7 @@ function fuseRules(prob, hsv, features, cnn) {
   const gr = features[8], ye = features[9], p = [...prob], top = () => p.indexOf(Math.max(...p));
   const from = MODEL.classes[top()], fromP = Math.max(...p);
   let why = null;
-  const mixedBunch = cnn && ye >= FUSE.mixed_yellow && cnn[2] + cnn[3] >= FUSE.mixed_cnn;   // หวีที่มีทั้งลูกเหลืองและลูกเขียว
+  const mixedBunch = (cnn && ye >= FUSE.mixed_yellow && cnn[2] + cnn[3] >= FUSE.mixed_cnn) || (ye >= 1.5 * gr && ye >= 0.4);   // หวีที่มีทั้งลูกเหลืองและลูกเขียว
   if (gr >= FUSE.green_to_unripe && top() !== 0 && !(mixedBunch && top() >= 2)) { p[0] += p[1] + p[2] + p[3]; p[1] = p[2] = p[3] = 0; why = 'green'; }
   else if (gr >= FUSE.green_to_unripe && mixedBunch && top() >= 2) { p[1] += p[2] + p[3]; p[2] = p[3] = 0; why = 'mixed'; }
   else if (gr >= FUSE.green_to_semi && top() >= 2) { p[1] += p[2] + p[3]; p[2] = p[3] = 0; why = 'green'; }
@@ -445,7 +460,7 @@ function fuseRules(prob, hsv, features, cnn) {
 async function analyze(fast = false) {
   let boxes = await detect(fast && liveSession ? liveSession : session), fallback = false;
   if (boxes.length) boxes = boxes.concat(extraBoxes(boxes));
-  else { const b = blobBox(); if (b) boxes = [b]; }
+  else boxes = blobBoxes();
   if (!boxes.length) { fallback = true; boxes = [{x1:0, y1:0, x2:frame.width, y2:frame.height, score:0}]; }
   const res = [];
   for (const b of boxes) { const {prob, adjusted, cnn, hsv, cmap, days} = await ripeness(b.x1, b.y1, b.x2, b.y2), k = prob.indexOf(Math.max(...prob));
@@ -570,6 +585,7 @@ $('shoot').onclick = async () => {               // หยุดภาพ แล
   stopCam(); busy = false;
   if (liveTask) await liveTask.catch(() => {});                                       // รอให้การวิเคราะห์สดที่ค้างอยู่จบก่อน
   frame.width = snapC.width; frame.height = snapC.height; fctx.drawImage(snapC, 0, 0);
+  if (modelReady) { setStatus('⏳ รอโมเดลโหลดให้เสร็จก่อน…'); await modelReady; }
   setStatus('🔍 กำลังวิเคราะห์ละเอียด…');
   const {res, fallback} = await analyze();
   draw(res, fallback); showResults(res, fallback);
@@ -583,6 +599,7 @@ $('file').onchange = e => {
   const im = new Image();
   im.onload = async () => {
     await waitLive;
+    if (modelReady) { setStatus('⏳ รอโมเดลโหลดให้เสร็จก่อน…'); await modelReady; }
     loadFrame(im, im.naturalWidth, im.naturalHeight); URL.revokeObjectURL(im.src);
     setStatus('🔍 กำลังวิเคราะห์…');
     const {res, fallback} = await analyze();
@@ -592,7 +609,7 @@ $('file').onchange = e => {
   };
   im.src = URL.createObjectURL(f); e.target.value = '';
 };
-loadModel();
+modelReady = loadModel();
 $('mapBtn').onclick = () => {
   showMap = !showMap;
   $('mapBtn').textContent = showMap ? '🖼️ กลับไปดูภาพปกติ' : '🎨 ดูแผนที่สีเปลือก';
