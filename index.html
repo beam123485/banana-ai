@@ -215,7 +215,7 @@ function yoloDecode(out, N, conf, scale, padX, padY, W, H, scoreRow) {
     const x2 = Math.min(W, (cx + w / 2 - padX) / scale), y2 = Math.min(H, (cy + h / 2 - padY) / scale);
     if (x2 - x1 > 4 && y2 - y1 > 4) boxes.push({ x1, y1, x2, y2, score: s });
   }
-  return dropOverlap(dropContained(nms(boxes, 0.45), 0.6), 0.3);
+  return dropOverlap(dropContained(nms(boxes, 0.45), 0.6), 0.4);
 }
 const area = b => (b.x2 - b.x1) * (b.y2 - b.y1);
 function inter(a, b) {
@@ -233,7 +233,7 @@ function dropContained(boxes, thr) {
   for (const b of byArea) if (keep.every(k => inter(k, b) / area(b) < thr)) keep.push(b);
   return keep;
 }
-// ถ้ากรอบซ้อนกันเกิน 30% ของกรอบที่เล็กกว่า ให้เหลือกรอบที่ YOLO มั่นใจที่สุด
+// ถ้ากรอบซ้อนกันเกิน 40% ของกรอบที่เล็กกว่า ให้เหลือกรอบที่ YOLO มั่นใจที่สุด
 function dropOverlap(boxes, thr) {
   const keep = [];
   for (const b of [...boxes].sort((a, c) => c.score - a.score))
