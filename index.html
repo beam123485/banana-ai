@@ -82,7 +82,7 @@
 
   <section class="card">
     <h2>AI ตัวนี้ทำงานยังไง</h2>
-    <div class="pipe"><b>ภาพ</b>→<b>YOLOv8 หากล้วย (COCO)</b>→<b>ตัดภาพตามกรอบ</b>→<b>HSV + ตัดฉากหลัง</b>→<b>ค่าสี HSV + สัดส่วนจุดดำ/น้ำตาล/เขียว/เหลือง</b>→<b>Logistic Regression</b>→<b>ระดับความสุก</b>&nbsp;+&nbsp;<b>Linear Regression</b>→<b>ยังกินได้อีกกี่วัน</b></div>
+    <div class="pipe"><b>ภาพ</b>→<b>YOLOv8 หากล้วย (COCO)</b>→<b>ตัดภาพตามกรอบ</b>→<b>HSV + ตัดฉากหลัง</b>→<b>ค่าสี HSV + ฮิสโตแกรมเฉดสี + จุดกระ</b>→<b>Logistic Regression</b>→<b>ระดับความสุก</b>&nbsp;+&nbsp;<b>Linear Regression</b>→<b>ยังกินได้อีกกี่วัน</b></div>
     <p class="sub" style="font-size:14px">YOLOv8n ใช้โมเดลตั้งต้นที่เรียนจากภาพทั่วไป (COCO) เลือกเฉพาะคลาส banana ส่วนโมเดลความสุกเทรนเองจากภาพกล้วย ประมวลผลทั้งหมดในเบราว์เซอร์ของคุณ ภาพไม่ถูกส่งไปที่ไหน</p>
   </section>
 </main>
@@ -90,7 +90,7 @@
 
 <script>
 // ====== น้ำหนักโมเดลความสุก (จาก train_ripeness.py → web/ripeness_weights.json) ======
-const MODEL = {"classes": ["Green", "Semi-ripe", "Ripe", "Overripe"], "features": ["H_mean", "S_mean", "V_mean", "H_std", "S_std", "V_std", "dark_ratio", "brown_ratio", "green_ratio", "yellow_ratio", "dull_ratio"], "mean": [27.929942, 156.058366, 129.508858, 8.245675, 43.464599, 36.56144, 0.226686, 0.086693, 0.197169, 0.441211, 0.179964], "scale": [10.010234, 42.628048, 33.874633, 6.492637, 10.213371, 12.074928, 0.217397, 0.121196, 0.269929, 0.338176, 0.196847], "coef": [[1.186298, 0.437647, -1.81644, 0.03451, -0.285175, 0.162472, -3.044797, -1.483767, -0.178029, -4.186228, 1.015479], [1.864924, 0.841612, -1.59593, -0.587222, -0.246164, 0.304703, -0.44123, 0.066479, 1.052718, 1.139988, 0.647419], [-3.792528, -1.477962, 2.373494, -0.299528, 1.02156, -0.112364, 1.076958, -0.383797, 4.284542, 1.943426, 1.39409], [0.741306, 0.198703, 1.038877, 0.85224, -0.490221, -0.354812, 2.409068, 1.801085, -5.159231, 1.102814, -3.056988]], "intercept": [2.027136, 1.63039, 1.223678, -4.881204]};
+const MODEL = {"classes": ["Green", "Semi-ripe", "Ripe", "Overripe"], "features": ["H_mean", "S_mean", "V_mean", "H_std", "S_std", "V_std", "dark_ratio", "brown_ratio", "green_ratio", "yellow_ratio", "dull_ratio", "hue_lt12", "hue_12_16", "hue_16_20", "hue_20_24", "hue_24_28", "hue_28_32", "hue_32_36", "hue_ge36", "spot_local"], "mean": [27.929942, 156.058366, 129.508858, 8.245675, 43.464599, 36.56144, 0.226686, 0.086693, 0.197169, 0.441211, 0.179964, 0.006086, 0.06134, 0.09678, 0.216207, 0.096441, 0.076265, 0.086676, 0.133521, 0.126142], "scale": [10.010234, 42.628048, 33.874633, 6.492637, 10.213371, 12.074928, 0.217397, 0.121196, 0.269929, 0.338176, 0.196847, 0.014554, 0.095135, 0.130122, 0.281977, 0.160772, 0.148111, 0.177925, 0.234253, 0.112637], "coef": [[0.829613, -0.398143, -0.939289, 0.258285, -0.097295, -0.072682, -0.47277, -0.711234, 0.692763, -1.168667, -0.822259, -0.808635, 1.355969, 0.121716, -1.771346, -0.641061, 0.680918, 0.042397, 1.980155, -0.494781], [1.453986, 1.213054, -1.183095, -0.714833, -0.612853, 0.273925, 0.173565, 0.660503, 0.642234, 0.184853, 0.212994, 0.527249, -1.804349, -0.085502, 0.376822, 0.732798, 0.426881, -0.113683, -0.553635, -0.565419], [-2.679327, -1.209125, 1.345645, -0.187674, 1.229979, 0.39263, -0.656841, -0.18735, -0.007403, 1.263326, 1.689308, 0.053881, -0.424273, -0.284389, 0.502538, -0.076138, -0.14118, 1.861914, -0.941098, -0.261904], [0.395727, 0.394214, 0.77674, 0.644222, -0.51983, -0.593873, 0.956047, 0.238081, -1.327594, -0.279512, -1.080043, 0.227504, 0.872653, 0.248175, 0.891985, -0.0156, -0.966618, -1.790628, -0.485421, 1.322104]], "intercept": [0.792233, 0.736541, 0.040165, -1.568939]};
 // ====== โมเดลทำนายวัน (จาก train_days.py → web/days_weights.json) ======
 const DAYS = {"model": "Linear (\u0e2a\u0e31\u0e14\u0e2a\u0e48\u0e27\u0e19\u0e08\u0e38\u0e14/\u0e2a\u0e35 3 \u0e1f\u0e35\u0e40\u0e08\u0e2d\u0e23\u0e4c)", "mae": 0.758, "max_day": 7, "idx": [6, 7, 9], "mean": [0.322814, 0.221013, 0.452128], "scale": [0.162518, 0.137426, 0.256616], "coef": [1.605299, 1.215172, 0.464053], "intercept": 3.278788};
 const YOLO_FILE = 'yolo_coco.onnx';   // YOLOv8n (COCO) — ใช้เฉพาะคลาส banana
@@ -149,17 +149,28 @@ function extractFeatures(rgba) {        // rgba: 256*256*4 array
   let cnt = 0; for (let i = 0; i < N; i++) cnt += mask[i];
   const use = cnt >= 100;
   const sum = [0,0,0], sq = [0,0,0]; let k = 0, dark = 0, brown = 0, green = 0, yellow = 0, dull = 0;
+  const hist = new Float64Array(8), EDGES = [12, 16, 20, 24, 28, 32, 36];
   for (let i = 0; i < N; i++) if (!use || mask[i]) {
     for (let c = 0; c < 3; c++) { const x = hsv[3*i+c]; sum[c] += x; sq[c] += x * x; }
     const h = hsv[3*i], s = hsv[3*i+1], v = hsv[3*i+2];
     if (v < 90) dark++;                                            // จุดดำ
     if (h <= 18 && s > 60 && v >= 90 && v < 180) brown++;          // สีน้ำตาล
     if (v >= 90) { if (h >= 33) green++; else if (h > 18) yellow++; if (s < 100) dull++; }   // เขียว / เหลือง / ซีด
+    if (v >= 90) { let b = 0; while (b < 7 && h >= EDGES[b]) b++; hist[b]++; }               // ฮิสโตแกรมเฉดสี 8 ช่อง
     k++;
   }
   const mean = sum.map(s => s / k);
   const std = sq.map((s, c) => Math.sqrt(Math.max(0, s / k - mean[c] ** 2)));
-  return { features: [...mean, ...std, dark / k, brown / k, green / k, yellow / k, dull / k], mask: use ? mask : new Uint8Array(N).fill(1) };
+  // จุดกระ: V ต่ำกว่าค่าเฉลี่ยรอบตัว 15x15 เกิน 20% (box blur แบบ reflect-101 เหมือน cv2.blur)
+  const V = new Float32Array(N); for (let i = 0; i < N; i++) V[i] = hsv[3*i+2];
+  const refl = (i) => i < 0 ? -i : (i >= n ? 2*n - 2 - i : i);
+  const tmpB = new Float32Array(N), loc = new Float32Array(N);
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { let s = 0; for (let d = -7; d <= 7; d++) s += V[y*n + refl(x+d)]; tmpB[y*n+x] = s / 15; }
+  for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { let s = 0; for (let d = -7; d <= 7; d++) s += tmpB[refl(y+d)*n + x]; loc[y*n+x] = s / 15; }
+  let spot = 0, cntM = 0;
+  for (let i = 0; i < N; i++) if (!use || mask[i]) { cntM++; if (V[i] < 0.8 * loc[i]) spot++; }
+  return { features: [...mean, ...std, dark / k, brown / k, green / k, yellow / k, dull / k,
+                      ...Array.from(hist, c => c / k), spot / cntM], mask: use ? mask : new Uint8Array(N).fill(1) };
 }
 function predict(features, W) {
   const z = W.coef.map((w, c) => W.intercept[c] +
@@ -258,7 +269,7 @@ function daysLeft(features) {                // Linear Regression ทายว�
 }
 function daysText(r) {
   if (r.name === 'Green' || r.name === 'Semi-ripe') return {short: '', long: '⏳ ยังไม่สุก รออีกสักระยะ'};
-  const d = r.days, lo = Math.max(0, Math.floor(d - DAYS.mae)), hi = Math.min(DAYS.max_day, Math.ceil(d + DAYS.mae));
+  const d = r.name === 'Overripe' ? Math.min(r.days, 2) : r.days, lo = Math.max(0, Math.floor(d - DAYS.mae)), hi = Math.min(DAYS.max_day, Math.ceil(d + DAYS.mae));
   if (hi <= 1) return {short: '≤1 วัน', long: '⚠️ ควรกินภายในวันนี้–พรุ่งนี้ (หรือนำไปทำขนม)'};
   return {short: `~${Math.round(d)} วัน`, long: `🗓️ ยังกินได้อีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง)`};
 }
