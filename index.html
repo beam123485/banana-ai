@@ -81,15 +81,15 @@
 
   <section class="card">
     <h2>AI ตัวนี้ทำงานยังไง</h2>
-    <div class="pipe"><b>ภาพ</b>→<b>YOLOv8 หากล้วย (COCO)</b>→<b>ตัดภาพตามกรอบ</b>→<b>HSV + ตัดฉากหลัง</b>→<b>6 ค่า (mean/std H,S,V)</b>→<b>Logistic Regression</b>→<b>ระดับความสุก</b></div>
+    <div class="pipe"><b>ภาพ</b>→<b>YOLOv8 หากล้วย (COCO)</b>→<b>ตัดภาพตามกรอบ</b>→<b>HSV + ตัดฉากหลัง</b>→<b>ค่าสี HSV + สัดส่วนจุดดำ/น้ำตาล/เขียว/เหลือง</b>→<b>Logistic Regression</b>→<b>ระดับความสุก</b></div>
     <p class="sub" style="font-size:14px">YOLOv8n ใช้โมเดลตั้งต้นที่เรียนจากภาพทั่วไป (COCO) เลือกเฉพาะคลาส banana ส่วนโมเดลความสุกเทรนเองจากภาพกล้วย ประมวลผลทั้งหมดในเบราว์เซอร์ของคุณ ภาพไม่ถูกส่งไปที่ไหน</p>
   </section>
 </main>
 <footer>Mini Project · AI for EE (67342EPE1)</footer>
 
 <script>
-// ====== น้ำหนักโมเดลความสุก (จาก train_local.py → web/ripeness_weights.json) ======
-const MODEL = {"classes": ["Green", "Semi-ripe", "Ripe", "Overripe"], "mean": [30.831628, 130.282313, 126.927118, 10.588881, 45.10246, 40.22514], "scale": [11.295316, 33.853508, 35.64338, 7.017011, 11.576535, 9.972877], "coef": [[2.769076, -0.435881, -1.413146, -0.039402, -0.054388, 0.161458], [-0.496019, 1.18874, 1.788559, -0.614145, -0.038222, -1.058195], [-2.571568, -0.789267, 4.969296, -0.980042, 0.750974, -0.028525], [0.298511, 0.036408, -5.34471, 1.633589, -0.658363, 0.925263]], "intercept": [2.12081, 0.553325, -0.419842, -2.254293], "yolo_size": 320};
+// ====== น้ำหนักโมเดลความสุก (จาก train_ripeness.py → web/ripeness_weights.json) ======
+const MODEL = {"classes": ["Green", "Semi-ripe", "Ripe", "Overripe"], "features": ["H_mean", "S_mean", "V_mean", "H_std", "S_std", "V_std", "dark_ratio", "brown_ratio", "green_ratio", "yellow_ratio", "dull_ratio"], "mean": [27.929942, 156.058366, 129.508858, 8.245675, 43.464599, 36.56144, 0.226686, 0.086693, 0.197169, 0.441211, 0.179964], "scale": [10.010234, 42.628048, 33.874633, 6.492637, 10.213371, 12.074928, 0.217397, 0.121196, 0.269929, 0.338176, 0.196847], "coef": [[1.186298, 0.437647, -1.81644, 0.03451, -0.285175, 0.162472, -3.044797, -1.483767, -0.178029, -4.186228, 1.015479], [1.864924, 0.841612, -1.59593, -0.587222, -0.246164, 0.304703, -0.44123, 0.066479, 1.052718, 1.139988, 0.647419], [-3.792528, -1.477962, 2.373494, -0.299528, 1.02156, -0.112364, 1.076958, -0.383797, 4.284542, 1.943426, 1.39409], [0.741306, 0.198703, 1.038877, 0.85224, -0.490221, -0.354812, 2.409068, 1.801085, -5.159231, 1.102814, -3.056988]], "intercept": [2.027136, 1.63039, 1.223678, -4.881204]};
 const YOLO_FILE = 'yolo_coco.onnx';   // YOLOv8n (COCO) — ใช้เฉพาะคลาส banana
 const YOLO_SIZE = 416;
 const BANANA_ROW = 4 + 46;             // แถวคะแนนของคลาส banana (COCO id 46)
@@ -145,17 +145,22 @@ function extractFeatures(rgba) {        // rgba: 256*256*4 array
   mask = morph(morph(mask, n, true), n, false);   // close
   let cnt = 0; for (let i = 0; i < N; i++) cnt += mask[i];
   const use = cnt >= 100;
-  const sum = [0,0,0], sq = [0,0,0]; let k = 0;
+  const sum = [0,0,0], sq = [0,0,0]; let k = 0, dark = 0, brown = 0, green = 0, yellow = 0, dull = 0;
   for (let i = 0; i < N; i++) if (!use || mask[i]) {
-    for (let c = 0; c < 3; c++) { const x = hsv[3*i+c]; sum[c] += x; sq[c] += x * x; } k++;
+    for (let c = 0; c < 3; c++) { const x = hsv[3*i+c]; sum[c] += x; sq[c] += x * x; }
+    const h = hsv[3*i], s = hsv[3*i+1], v = hsv[3*i+2];
+    if (v < 90) dark++;                                            // จุดดำ
+    if (h <= 18 && s > 60 && v >= 90 && v < 180) brown++;          // สีน้ำตาล
+    if (v >= 90) { if (h >= 33) green++; else if (h > 18) yellow++; if (s < 100) dull++; }   // เขียว / เหลือง / ซีด
+    k++;
   }
   const mean = sum.map(s => s / k);
   const std = sq.map((s, c) => Math.sqrt(Math.max(0, s / k - mean[c] ** 2)));
-  return { features: [...mean, ...std], mask: use ? mask : new Uint8Array(N).fill(1) };
+  return { features: [...mean, ...std, dark / k, brown / k, green / k, yellow / k, dull / k], mask: use ? mask : new Uint8Array(N).fill(1) };
 }
 function predict(features, W) {
   const z = W.coef.map((w, c) => W.intercept[c] +
-    w.reduce((a, wi, i) => a + wi * (features[i] - W.mean[i]) / W.scale[i], 0));
+    w.reduce((a, wi, i) => a + wi * (features[i] - W.mean[i]) / W.scale[i], 0));   // ใช้ฟีเจอร์ตามจำนวนน้ำหนัก (6 หรือ 8)
   const m = Math.max(...z), e = z.map(v => Math.exp(v - m)), s = e.reduce((a, b) => a + b);
   return e.map(v => v / s);
 }
@@ -291,6 +296,7 @@ function loadFrame(src, sw, sh, crop) {
   }
   const k = Math.min(1, 1024 / Math.max(sw, sh));
   frame.width = Math.round(sw * k); frame.height = Math.round(sh * k);
+  fctx.fillStyle = '#fff'; fctx.fillRect(0, 0, frame.width, frame.height);   // PNG พื้นใส → พื้นขาว
   fctx.drawImage(src, sx, sy, sw, sh, 0, 0, frame.width, frame.height);
 }
 
