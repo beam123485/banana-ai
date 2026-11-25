@@ -34,6 +34,7 @@
   .item{border-top:1px solid var(--line);padding:12px 0 6px}
   .item:first-of-type{border-top:0}
   .item h3{margin:0 0 4px;font-size:18px}
+  .days{font-weight:600;font-size:16px;margin:2px 0 8px}
   .bar{display:grid;grid-template-columns:80px 1fr 54px;align-items:center;gap:10px;margin:5px 0;font-size:14px}
   .track{height:10px;background:#f3ead6;border-radius:99px;overflow:hidden}
   .fill{height:100%;border-radius:99px}
@@ -48,7 +49,7 @@
 <body>
 <header>
   <h1>🍌 <span>Banana AI</span></h1>
-  <p class="sub">หากล้วยในภาพด้วย YOLO แล้วบอกระดับความสุกของแต่ละลูกด้วยค่าสี HSV + Logistic Regression</p>
+  <p class="sub">หากล้วยในภาพด้วย YOLO แล้วบอกระดับความสุกและจำนวนวันที่ยังกินได้ ด้วยค่าสี HSV + Logistic / Linear Regression</p>
 </header>
 <main>
   <section class="card">
@@ -81,7 +82,7 @@
 
   <section class="card">
     <h2>AI ตัวนี้ทำงานยังไง</h2>
-    <div class="pipe"><b>ภาพ</b>→<b>YOLOv8 หากล้วย (COCO)</b>→<b>ตัดภาพตามกรอบ</b>→<b>HSV + ตัดฉากหลัง</b>→<b>ค่าสี HSV + สัดส่วนจุดดำ/น้ำตาล/เขียว/เหลือง</b>→<b>Logistic Regression</b>→<b>ระดับความสุก</b></div>
+    <div class="pipe"><b>ภาพ</b>→<b>YOLOv8 หากล้วย (COCO)</b>→<b>ตัดภาพตามกรอบ</b>→<b>HSV + ตัดฉากหลัง</b>→<b>ค่าสี HSV + สัดส่วนจุดดำ/น้ำตาล/เขียว/เหลือง</b>→<b>Logistic Regression</b>→<b>ระดับความสุก</b>&nbsp;+&nbsp;<b>Linear Regression</b>→<b>ยังกินได้อีกกี่วัน</b></div>
     <p class="sub" style="font-size:14px">YOLOv8n ใช้โมเดลตั้งต้นที่เรียนจากภาพทั่วไป (COCO) เลือกเฉพาะคลาส banana ส่วนโมเดลความสุกเทรนเองจากภาพกล้วย ประมวลผลทั้งหมดในเบราว์เซอร์ของคุณ ภาพไม่ถูกส่งไปที่ไหน</p>
   </section>
 </main>
@@ -90,6 +91,8 @@
 <script>
 // ====== น้ำหนักโมเดลความสุก (จาก train_ripeness.py → web/ripeness_weights.json) ======
 const MODEL = {"classes": ["Green", "Semi-ripe", "Ripe", "Overripe"], "features": ["H_mean", "S_mean", "V_mean", "H_std", "S_std", "V_std", "dark_ratio", "brown_ratio", "green_ratio", "yellow_ratio", "dull_ratio"], "mean": [27.929942, 156.058366, 129.508858, 8.245675, 43.464599, 36.56144, 0.226686, 0.086693, 0.197169, 0.441211, 0.179964], "scale": [10.010234, 42.628048, 33.874633, 6.492637, 10.213371, 12.074928, 0.217397, 0.121196, 0.269929, 0.338176, 0.196847], "coef": [[1.186298, 0.437647, -1.81644, 0.03451, -0.285175, 0.162472, -3.044797, -1.483767, -0.178029, -4.186228, 1.015479], [1.864924, 0.841612, -1.59593, -0.587222, -0.246164, 0.304703, -0.44123, 0.066479, 1.052718, 1.139988, 0.647419], [-3.792528, -1.477962, 2.373494, -0.299528, 1.02156, -0.112364, 1.076958, -0.383797, 4.284542, 1.943426, 1.39409], [0.741306, 0.198703, 1.038877, 0.85224, -0.490221, -0.354812, 2.409068, 1.801085, -5.159231, 1.102814, -3.056988]], "intercept": [2.027136, 1.63039, 1.223678, -4.881204]};
+// ====== โมเดลทำนายวัน (จาก train_days.py → web/days_weights.json) ======
+const DAYS = {"model": "Linear (\u0e2a\u0e31\u0e14\u0e2a\u0e48\u0e27\u0e19\u0e08\u0e38\u0e14/\u0e2a\u0e35 3 \u0e1f\u0e35\u0e40\u0e08\u0e2d\u0e23\u0e4c)", "mae": 0.758, "max_day": 7, "idx": [6, 7, 9], "mean": [0.322814, 0.221013, 0.452128], "scale": [0.162518, 0.137426, 0.256616], "coef": [1.605299, 1.215172, 0.464053], "intercept": 3.278788};
 const YOLO_FILE = 'yolo_coco.onnx';   // YOLOv8n (COCO) — ใช้เฉพาะคลาส banana
 const YOLO_SIZE = 416;
 const BANANA_ROW = 4 + 46;             // แถวคะแนนของคลาส banana (COCO id 46)
@@ -244,14 +247,27 @@ function ripeness(x1, y1, x2, y2) {
   const bx = Math.min(frame.width, x2 + p*w), by = Math.min(frame.height, y2 + p*h);
   cctx.drawImage(frame, ax, ay, bx - ax, by - ay, 0, 0, SIZE, SIZE);
   const {features} = extractFeatures(cctx.getImageData(0, 0, SIZE, SIZE).data);
-  return predict(features, MODEL);
+  return {prob: predict(features, MODEL), days: daysLeft(features)};
+}
+
+function daysLeft(features) {                // Linear Regression ทายว่าอยู่วันที่เท่าไหร่ (0 = เพิ่งสุก, max_day = ดำทั้งลูก)
+  const idx = DAYS.idx || DAYS.coef.map((_, i) => i);
+  const z = j => Math.max(-4, Math.min(4, (features[idx[j]] - DAYS.mean[j]) / DAYS.scale[j]));   // จำกัดไม่ให้ค่าหลุดช่วงข้อมูลเทรนมากเกินไป
+  const day = DAYS.intercept + DAYS.coef.reduce((a, w, j) => a + w * z(j), 0);
+  return Math.max(0, DAYS.max_day - Math.min(DAYS.max_day, Math.max(0, day)));
+}
+function daysText(r) {
+  if (r.name === 'Green' || r.name === 'Semi-ripe') return {short: '', long: '⏳ ยังไม่สุก รออีกสักระยะ'};
+  const d = r.days, lo = Math.max(0, Math.floor(d - DAYS.mae)), hi = Math.min(DAYS.max_day, Math.ceil(d + DAYS.mae));
+  if (hi <= 1) return {short: '≤1 วัน', long: '⚠️ ควรกินภายในวันนี้–พรุ่งนี้ (หรือนำไปทำขนม)'};
+  return {short: `~${Math.round(d)} วัน`, long: `🗓️ ยังกินได้อีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง)`};
 }
 
 async function analyze() {
   let boxes = await detect(), fallback = false;
   if (!boxes.length) { fallback = true; boxes = [{x1:0, y1:0, x2:frame.width, y2:frame.height, score:0}]; }
-  const res = boxes.map(b => { const prob = ripeness(b.x1, b.y1, b.x2, b.y2), k = prob.indexOf(Math.max(...prob));
-                               return {...b, prob, name: MODEL.classes[k]}; });
+  const res = boxes.map(b => { const {prob, days} = ripeness(b.x1, b.y1, b.x2, b.y2), k = prob.indexOf(Math.max(...prob));
+                               return {...b, prob, days, name: MODEL.classes[k]}; });
   res.sort((a, b) => a.x1 - b.x1);
   return {res, fallback};
 }
@@ -263,7 +279,7 @@ function draw(res, fallback) {
   const lw = Math.max(3, frame.width / 220), fs = Math.max(16, frame.width / 32);
   vctx.font = `600 ${fs}px "IBM Plex Sans Thai", sans-serif`;
   res.forEach((r, i) => {
-    const L = LABELS[r.name], txt = `#${i+1} ${L.th} ${(Math.max(...r.prob)*100).toFixed(0)}%`;
+    const L = LABELS[r.name], ds = daysText(r).short, txt = `#${i+1} ${L.th} ${(Math.max(...r.prob)*100).toFixed(0)}%${ds ? ' · ' + ds : ''}`;
     vctx.strokeStyle = L.color; vctx.lineWidth = lw; vctx.strokeRect(r.x1, r.y1, r.x2 - r.x1, r.y2 - r.y1);
     const tw = vctx.measureText(txt).width + 12, ty = Math.max(0, r.y1 - fs - 8);
     vctx.fillStyle = L.color; vctx.fillRect(r.x1 - lw/2, ty, tw, fs + 8);
@@ -280,6 +296,7 @@ function showResults(res, fallback) {
   $('items').innerHTML = res.map((r, i) => {
     const L = LABELS[r.name];
     return `<div class="item"><h3 style="color:${L.color}">${fallback ? 'ทั้งภาพ' : '#' + (i+1)} · ${L.th} (${r.name}) ${(Math.max(...r.prob)*100).toFixed(1)}%</h3>` +
+      `<div class="days">${daysText(r).long}</div>` +
       MODEL.classes.map((c, j) => `<div class="bar"><span>${LABELS[c].th}</span><div class="track"><div class="fill" style="width:${(r.prob[j]*100).toFixed(1)}%;background:${LABELS[c].color}"></div></div><span>${(r.prob[j]*100).toFixed(1)}%</span></div>`).join('') +
       (fallback ? '' : `<div class="sub" style="font-size:13px">YOLO มั่นใจว่าเป็นกล้วย ${(r.score*100).toFixed(0)}%</div>`) + '</div>';
   }).join('');
