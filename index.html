@@ -77,6 +77,7 @@
       <li>แสงสว่างพอ ไม่ใช้ไฟสีเหลืองจัด</li>
       <li>ถ้ากล้วยเป็นหวี ระบบจะตีกรอบรวมทั้งหวีแล้วบอกความสุกเฉลี่ยของหวีนั้น</li>
       <li>เหมาะกับกล้วยที่เปลือกเปลี่ยนเป็นสีเหลืองเมื่อสุก เช่น กล้วยหอม</li>
+      <li>ระบบดูจากเปลือกเท่านั้น ตรวจเนื้อในหรือราไม่ได้ ถ้ามีรา กลิ่นเปรี้ยว หรือน้ำเยิ้ม ไม่ควรกิน</li>
     </ul>
   </section>
 
@@ -269,9 +270,11 @@ function daysLeft(features) {                // Linear Regression ทายว�
 }
 function daysText(r) {
   if (r.name === 'Green' || r.name === 'Semi-ripe') return {short: '', long: '⏳ ยังไม่สุก รออีกสักระยะ'};
-  const d = r.name === 'Overripe' ? Math.min(r.days, 2) : r.days, lo = Math.max(0, Math.floor(d - DAYS.mae)), hi = Math.min(DAYS.max_day, Math.ceil(d + DAYS.mae));
-  if (hi <= 1) return {short: '≤1 วัน', long: '⚠️ ควรกินภายในวันนี้–พรุ่งนี้ (หรือนำไปทำขนม)'};
-  return {short: `~${Math.round(d)} วัน`, long: `🗓️ ยังกินได้อีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง)`};
+  if (r.name === 'Overripe') return {short: 'ทำขนม',
+    long: '🍰 เหมาะทำขนม/สมูตตี้ — เปลือกดำไม่ได้แปลว่าเสีย ให้เช็กเนื้อใน กลิ่น และรา ก่อนกิน'};
+  const d = r.days, lo = Math.max(0, Math.floor(d - DAYS.mae)), hi = Math.min(DAYS.max_day, Math.ceil(d + DAYS.mae));
+  if (hi <= 1) return {short: '≤1 วัน', long: '🗓️ ควรกินสดภายในวันนี้–พรุ่งนี้ จากนั้นเหมาะทำขนม/สมูตตี้'};
+  return {short: `~${Math.round(d)} วัน`, long: `🗓️ ยังกินสดอร่อยอีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง)`};
 }
 
 async function analyze() {
