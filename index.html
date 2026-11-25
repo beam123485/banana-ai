@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Banana AI — ตรวจความสุกของกล้วย</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--ink:#2b2416;--muted:#7a6f5a;--bg:#fffaf0;--card:#fff;--line:#eadfc8;--y:#f5c518;--g:#5a9e3a;--b:#6b4a2b;}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"IBM Plex Sans Thai",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55}
+  header{padding:28px 20px 8px;max-width:760px;margin:auto}
+  h1{margin:0;font-size:clamp(26px,6vw,38px);letter-spacing:-.5px}
+  h1 span{background:linear-gradient(transparent 60%,var(--y) 60%)}
+  .sub{color:var(--muted);margin:6px 0 0}
+  main{max-width:760px;margin:auto;padding:12px 20px 40px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:16px}
+  .btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  button,.filebtn{font:inherit;font-weight:600;border:0;border-radius:12px;padding:14px;cursor:pointer;text-align:center;font-size:16px}
+  .primary{background:var(--ink);color:#fff}
+  .secondary{background:#f3ead6;color:var(--ink)}
+  button:disabled{opacity:.4;cursor:default}
+  #stage{position:relative;margin-top:14px;border-radius:14px;overflow:hidden;background:#f3ead6;aspect-ratio:1;display:none}
+  #stage video,#stage canvas{width:100%;height:100%;object-fit:cover;display:block}
+  .guide{position:absolute;inset:12%;border:2px dashed rgba(255,255,255,.85);border-radius:12px;pointer-events:none}
+  #shoot{margin-top:10px;width:100%;display:none}
+  #result{display:none}
+  .previews{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .previews figure{margin:0}
+  .previews canvas{width:100%;border-radius:12px;display:block;background:#000}
+  figcaption{font-size:13px;color:var(--muted);margin-top:4px;text-align:center}
+  .verdict{font-size:30px;font-weight:700;margin:16px 0 2px}
+  .conf{color:var(--muted);margin:0 0 12px}
+  .bar{display:grid;grid-template-columns:110px 1fr 54px;align-items:center;gap:10px;margin:7px 0;font-size:15px}
+  .track{height:12px;background:#f3ead6;border-radius:99px;overflow:hidden}
+  .fill{height:100%;border-radius:99px;transition:width .5s}
+  .warn{background:#fff3cd;border-radius:10px;padding:10px 12px;margin-top:12px;font-size:14px;display:none}
+  .tips li{margin:4px 0}
+  .pipe{display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:14px}
+  .pipe b{background:#f3ead6;border-radius:8px;padding:6px 10px;font-weight:600}
+  footer{color:var(--muted);font-size:13px;text-align:center;padding:10px 20px 30px}
+  h2{font-size:18px;margin:0 0 8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🍌 <span>Banana AI</span></h1>
+  <p class="sub">ตรวจระดับความสุกของกล้วยจากภาพถ่าย ด้วยค่าสี HSV และ Logistic Regression</p>
+</header>
+<main>
+  <section class="card">
+    <div class="btns">
+      <button class="primary" id="camBtn">📷 เปิดกล้อง</button>
+      <label class="filebtn secondary">🖼️ อัปโหลดรูป<input type="file" id="file" accept="image/*" hidden></label>
+    </div>
+    <div id="stage"><video id="video" playsinline muted></video><div class="guide"></div></div>
+    <button class="primary" id="shoot">ถ่ายและตรวจ</button>
+  </section>
+
+  <section class="card" id="result">
+    <div class="previews">
+      <figure><canvas id="inCanvas" width="256" height="256"></canvas><figcaption>ภาพที่ตรวจ</figcaption></figure>
+      <figure><canvas id="maskCanvas" width="256" height="256"></canvas><figcaption>ส่วนที่ AI มองว่าเป็นกล้วย</figcaption></figure>
+    </div>
+    <p class="verdict" id="verdict"></p>
+    <p class="conf" id="conf"></p>
+    <div id="bars"></div>
+    <div class="warn" id="warn"></div>
+  </section>
+
+  <section class="card tips">
+    <h2>ถ่ายยังไงให้ตรวจแม่น</h2>
+    <ul>
+      <li>วางกล้วย <b>1 ลูก</b> บน<b>พื้นสีขาวหรือสีอ่อน</b> เช่น กระดาษ A4</li>
+      <li>ใช้แสงสว่างสม่ำเสมอ ไม่มีเงาเข้ม และไม่ใช้ไฟสีเหลืองจัด</li>
+      <li>ให้กล้วยอยู่ในกรอบเส้นประ เต็มประมาณครึ่งภาพ</li>
+      <li>เหมาะกับกล้วยที่เปลือกเปลี่ยนเป็นสีเหลืองเมื่อสุก เช่น กล้วยหอม</li>
+    </ul>
+  </section>
+
+  <section class="card">
+    <h2>AI ตัวนี้ทำงานยังไง</h2>
+    <div class="pipe"><b>ภาพ</b>→<b>แปลงเป็น HSV</b>→<b>ตัดฉากหลัง</b>→<b>ดึง 6 ค่า (mean/std ของ H,S,V)</b>→<b>Logistic Regression</b>→<b>ระดับความสุก</b></div>
+    <p class="sub" style="font-size:14px">โมเดลเทรนเองจากภาพกล้วยแยกตามระดับความสุก ประมวลผลทั้งหมดในเบราว์เซอร์ของคุณ ภาพไม่ถูกส่งไปที่ไหน</p>
+  </section>
+</main>
+<footer>Mini Project · AI for EE (67342EPE1)</footer>
+
+<script>
+// ====== น้ำหนักโมเดล (คัดลอกจาก Colab มาวางแทนบรรทัดนี้) ======
+const MODEL = {"classes": ["Green", "Semi-ripe", "Ripe", "Overripe"], "mean": [30.706646, 157.501258, 113.702291, 11.057353, 47.885187, 36.434322], "scale": [11.848683, 41.005757, 39.623244, 10.419202, 11.761572, 13.540142], "coef": [[2.049887, 0.479938, -0.536269, -0.249584, 0.338401, -0.641486], [-0.152918, 0.398798, 0.678561, -0.432796, -0.518312, -0.321258], [-1.620853, 0.065205, 2.274323, -0.589778, 0.413642, 0.658951], [-0.276116, -0.943941, -2.416614, 1.272158, -0.233731, 0.303792]], "intercept": [0.621141, 0.690679, -1.378577, 0.066758]};
+// ==========================================================
+
+const LABELS = {
+  'Green':    {th:'ดิบ',      color:'#5a9e3a'},
+  'Unripe':   {th:'ดิบ',      color:'#5a9e3a'},
+  'Semi-ripe':{th:'เริ่มสุก', color:'#b5c22e'},
+  'Ripe':     {th:'สุก',      color:'#f5c518'},
+  'Overripe': {th:'งอม',      color:'#6b4a2b'},
+};
+// ===== Banana AI core: HSV features + Logistic Regression (same as Colab) =====
+const SIZE = 256;
+function rgb2hsv(r, g, b) {            // OpenCV-style: H 0-180, S 0-255, V 0-255
+  const v = Math.max(r, g, b), mn = Math.min(r, g, b), d = v - mn;
+  const s = v === 0 ? 0 : Math.round(255 * d / v);
+  let h = 0;
+  if (d !== 0) {
+    if (v === r) h = 60 * (g - b) / d;
+    else if (v === g) h = 120 + 60 * (b - r) / d;
+    else h = 240 + 60 * (r - g) / d;
+    if (h < 0) h += 360;
+  }
+  return [Math.round(h / 2) % 180, s, v];
+}
+function morph(m, n, dilate) {          // 5x5 rectangle, separable
+  const tmp = new Uint8Array(n * n), out = new Uint8Array(n * n);
+  const pass = (src, dst, horiz) => {
+    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+      let r = dilate ? 0 : 1;
+      for (let k = -2; k <= 2; k++) {
+        const xx = horiz ? x + k : x, yy = horiz ? y : y + k;
+        if (xx < 0 || yy < 0 || xx >= n || yy >= n) continue;
+        const val = src[yy * n + xx];
+        if (dilate) { if (val) { r = 1; break; } } else if (!val) { r = 0; break; }
+      }
+      dst[y * n + x] = r;
+    }
+  };
+  pass(m, tmp, true); pass(tmp, out, false);
+  return out;
+}
+function extractFeatures(rgba) {        // rgba: 256*256*4 array
+  const n = SIZE, N = n * n, hsv = new Float32Array(N * 3);
+  let mask = new Uint8Array(N);
+  for (let i = 0; i < N; i++) {
+    const [h, s, v] = rgb2hsv(rgba[4*i], rgba[4*i+1], rgba[4*i+2]);
+    hsv[3*i] = h; hsv[3*i+1] = s; hsv[3*i+2] = v;
+    mask[i] = (s > 50 || v < 90) ? 1 : 0;
+  }
+  mask = morph(morph(mask, n, false), n, true);   // open
+  mask = morph(morph(mask, n, true), n, false);   // close
+  let cnt = 0; for (let i = 0; i < N; i++) cnt += mask[i];
+  const use = cnt >= 100;
+  const sum = [0,0,0], sq = [0,0,0]; let k = 0;
+  for (let i = 0; i < N; i++) if (!use || mask[i]) {
+    for (let c = 0; c < 3; c++) { const x = hsv[3*i+c]; sum[c] += x; sq[c] += x * x; } k++;
+  }
+  const mean = sum.map(s => s / k);
+  const std = sq.map((s, c) => Math.sqrt(Math.max(0, s / k - mean[c] ** 2)));
+  return { features: [...mean, ...std], mask: use ? mask : new Uint8Array(N).fill(1) };
+}
+function predict(features, W) {
+  const z = W.coef.map((w, c) => W.intercept[c] +
+    w.reduce((a, wi, i) => a + wi * (features[i] - W.mean[i]) / W.scale[i], 0));
+  const m = Math.max(...z), e = z.map(v => Math.exp(v - m)), s = e.reduce((a, b) => a + b);
+  return e.map(v => v / s);
+}
+
+const $ = id => document.getElementById(id);
+const work = document.createElement('canvas'); work.width = work.height = SIZE;
+const wctx = work.getContext('2d', {willReadFrequently:true});
+let stream = null;
+
+function analyze(source, sw, sh) {
+  const side = Math.min(sw, sh), sx = (sw - side) / 2, sy = (sh - side) / 2;   // ครอปตรงกลางเป็นสี่เหลี่ยม
+  wctx.drawImage(source, sx, sy, side, side, 0, 0, SIZE, SIZE);
+  const img = wctx.getImageData(0, 0, SIZE, SIZE);
+  const {features, mask} = extractFeatures(img.data);
+  const prob = predict(features, MODEL);
+  show(img, mask, prob);
+}
+
+function show(img, mask, prob) {
+  $('result').style.display = 'block';
+  $('inCanvas').getContext('2d').putImageData(img, 0, 0);
+  const m = new ImageData(new Uint8ClampedArray(img.data), SIZE, SIZE);
+  let area = 0;
+  for (let i = 0; i < mask.length; i++) { if (mask[i]) area++; else m.data[4*i] = m.data[4*i+1] = m.data[4*i+2] = 0; }
+  $('maskCanvas').getContext('2d').putImageData(m, 0, 0);
+
+  const best = prob.indexOf(Math.max(...prob)), name = MODEL.classes[best], L = LABELS[name] || {th:name, color:'#999'};
+  $('verdict').textContent = `${L.th} (${name})`;
+  $('verdict').style.color = L.color === '#f5c518' ? '#b08a00' : L.color;
+  $('conf').textContent = `ความมั่นใจ ${(prob[best]*100).toFixed(1)}%`;
+  $('bars').innerHTML = MODEL.classes.map((c, i) => {
+    const l = LABELS[c] || {th:c, color:'#999'};
+    return `<div class="bar"><span>${l.th}</span><div class="track"><div class="fill" style="width:${(prob[i]*100).toFixed(1)}%;background:${l.color}"></div></div><span>${(prob[i]*100).toFixed(1)}%</span></div>`;
+  }).join('');
+
+  const ratio = area / mask.length, w = $('warn');
+  const msgs = [];
+  if (ratio < 0.03) msgs.push('⚠️ แทบไม่พบกล้วยในภาพ ลองถ่ายใกล้ขึ้นหรือใช้พื้นสีขาว');
+  else if (ratio > 0.85) msgs.push('⚠️ ฉากหลังอาจมีสีสดเกินไป ผลอาจคลาดเคลื่อน ลองวางบนพื้นสีขาว');
+  if (prob[best] < 0.55) msgs.push('🤔 ผลก้ำกึ่งระหว่างสองระดับ ลองถ่ายใหม่ในแสงที่สว่างขึ้น');
+  w.style.display = msgs.length ? 'block' : 'none'; w.innerHTML = msgs.join('<br>');
+  $('result').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+$('camBtn').onclick = async () => {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null;
+    $('stage').style.display = $('shoot').style.display = 'none'; $('camBtn').textContent = '📷 เปิดกล้อง'; return; }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment', width:{ideal:1280}}, audio:false});
+    $('video').srcObject = stream; await $('video').play();
+    $('stage').style.display = 'block'; $('shoot').style.display = 'block'; $('camBtn').textContent = '✖ ปิดกล้อง';
+  } catch (e) { alert('เปิดกล้องไม่ได้: ' + e.message + '\nลองกด "อัปโหลดรูป" แทน'); }
+};
+$('shoot').onclick = () => { const v = $('video'); analyze(v, v.videoWidth, v.videoHeight); };
+$('file').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const im = new Image();
+  im.onload = () => { analyze(im, im.naturalWidth, im.naturalHeight); URL.revokeObjectURL(im.src); };
+  im.src = URL.createObjectURL(f); e.target.value = '';
+};
+</script>
+</body>
+</html>
