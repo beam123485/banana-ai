@@ -25,7 +25,7 @@
   #status{font-size:14px;color:var(--muted);margin:10px 2px 0}
   #status.ok{color:#3d7a26}
   #status.err{color:#b3261e}
-  #view{width:100%;border-radius:14px;display:none;margin-top:14px;background:#f3ead6}
+  #view{max-width:100%;max-height:55vh;border-radius:14px;display:none;margin:14px auto 0;background:#f3ead6}
   #shoot{margin-top:10px;width:100%;display:none}
   #video{display:none}
   #result{display:none}
@@ -71,6 +71,7 @@
   <section class="card tips">
     <h2>ถ่ายยังไงให้ตรวจแม่น</h2>
     <ul>
+      <li>โหมดกล้องจะตรวจเฉพาะกรอบสี่เหลี่ยมที่เห็นบนจอ ให้กล้วยอยู่กลางกรอบ</li>
       <li>ให้เห็นตัวกล้วยชัด ไม่โดนบังมาก</li>
       <li>แสงสว่างพอ ไม่ใช้ไฟสีเหลืองจัด</li>
       <li>ถ้ากล้วยเป็นหวี ระบบจะตีกรอบรวมทั้งหวีแล้วบอกความสุกเฉลี่ยของหวีนั้น</li>
@@ -92,7 +93,8 @@ const MODEL = {"classes": ["Green", "Semi-ripe", "Ripe", "Overripe"], "mean": [3
 const YOLO_FILE = 'yolo_coco.onnx';   // YOLOv8n (COCO) — ใช้เฉพาะคลาส banana
 const YOLO_SIZE = 416;
 const BANANA_ROW = 4 + 46;             // แถวคะแนนของคลาส banana (COCO id 46)
-const CONF = 0.25;
+const CONF = 0.3;
+const CAM_CROP = 0.8;                   // กล้อง: ใช้ 80% ตรงกลางของภาพ (สี่เหลี่ยมจัตุรัส)
 // ==============================================================================
 const LABELS = {
   'Green':    {th:'ดิบ',      color:'#4f9a2f'},
@@ -169,7 +171,7 @@ function yoloDecode(out, N, conf, scale, padX, padY, W, H, scoreRow) {
     const x2 = Math.min(W, (cx + w / 2 - padX) / scale), y2 = Math.min(H, (cy + h / 2 - padY) / scale);
     if (x2 - x1 > 4 && y2 - y1 > 4) boxes.push({ x1, y1, x2, y2, score: s });
   }
-  return dropContained(nms(boxes, 0.45), 0.6);
+  return dropOverlap(dropContained(nms(boxes, 0.45), 0.6), 0.3);
 }
 const area = b => (b.x2 - b.x1) * (b.y2 - b.y1);
 function inter(a, b) {
@@ -185,6 +187,13 @@ function nms(boxes, thr) {
 function dropContained(boxes, thr) {
   const byArea = [...boxes].sort((a, b) => area(b) - area(a)), keep = [];
   for (const b of byArea) if (keep.every(k => inter(k, b) / area(b) < thr)) keep.push(b);
+  return keep;
+}
+// ถ้ากรอบซ้อนกันเกิน 30% ของกรอบที่เล็กกว่า ให้เหลือกรอบที่ YOLO มั่นใจที่สุด
+function dropOverlap(boxes, thr) {
+  const keep = [];
+  for (const b of [...boxes].sort((a, c) => c.score - a.score))
+    if (keep.every(k => inter(k, b) / Math.min(area(k), area(b)) < thr)) keep.push(b);
   return keep.slice(0, 10);
 }
 const $ = id => document.getElementById(id);
@@ -275,17 +284,21 @@ function showResults(res, fallback) {
   w.style.display = msgs.length ? 'block' : 'none'; w.innerHTML = msgs.join('<br>');
 }
 
-function loadFrame(src, sw, sh) {
-  const k = Math.min(1, 1280 / Math.max(sw, sh));
+function loadFrame(src, sw, sh, crop) {
+  let sx = 0, sy = 0;
+  if (crop) {                                   // กล้อง: ครอปสี่เหลี่ยมจัตุรัสตรงกลาง (ส่วนที่ใช้ตรวจ)
+    const side = Math.min(sw, sh) * CAM_CROP; sx = (sw - side) / 2; sy = (sh - side) / 2; sw = sh = side;
+  }
+  const k = Math.min(1, 1024 / Math.max(sw, sh));
   frame.width = Math.round(sw * k); frame.height = Math.round(sh * k);
-  fctx.drawImage(src, 0, 0, frame.width, frame.height);
+  fctx.drawImage(src, sx, sy, sw, sh, 0, 0, frame.width, frame.height);
 }
 
 async function liveLoop() {
   if (!live) return;
   if (!busy && $('video').videoWidth) {
     busy = true;
-    const v = $('video'); loadFrame(v, v.videoWidth, v.videoHeight);
+    const v = $('video'); loadFrame(v, v.videoWidth, v.videoHeight, true);
     const {res, fallback} = await analyze(); lastResults = [res, fallback];
     draw(res, fallback); busy = false;
   }
