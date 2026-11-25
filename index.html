@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Banana AI — ตรวจความสุกของกล้วย</title>
+<title>สุกยัง? (SukYang) — ถามกล้วยไม่ได้ ถาม AI แทน</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
@@ -14,6 +14,8 @@
   header{padding:28px 20px 8px;max-width:760px;margin:auto}
   h1{margin:0;font-size:clamp(26px,6vw,38px);letter-spacing:-.5px}
   h1 span{background:linear-gradient(transparent 60%,var(--y) 60%)}
+  h1 .en{font-size:.45em;color:var(--muted);font-weight:600;letter-spacing:.5px}
+  .tag{margin:4px 0 0;font-size:clamp(17px,4.2vw,21px);font-weight:600}
   .sub{color:var(--muted);margin:6px 0 0}
   main{max-width:760px;margin:auto;padding:12px 20px 40px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:18px;margin-top:16px}
@@ -48,7 +50,8 @@
 </head>
 <body>
 <header>
-  <h1>🍌 <span>Banana AI</span></h1>
+  <h1>🍌 <span>สุกยัง?</span> <small class="en">SukYang</small></h1>
+  <p class="tag">ถามกล้วยไม่ได้ ถาม AI แทน</p>
   <p class="sub">หากล้วยในภาพด้วย YOLO แล้วบอกระดับความสุกและจำนวนวันที่ยังกินได้ ด้วยค่าสี HSV + Logistic / Linear Regression</p>
 </header>
 <main>
@@ -87,7 +90,7 @@
     <p class="sub" style="font-size:14px">YOLOv8n ใช้โมเดลตั้งต้นที่เรียนจากภาพทั่วไป (COCO) เลือกเฉพาะคลาส banana ส่วนโมเดลความสุกเทรนเองจากภาพกล้วย ประมวลผลทั้งหมดในเบราว์เซอร์ของคุณ ภาพไม่ถูกส่งไปที่ไหน</p>
   </section>
 </main>
-<footer>Mini Project · AI for EE (67342EPE1)</footer>
+<footer>สุกยัง? (SukYang) · Mini Project · AI for EE (67342EPE1)</footer>
 
 <script>
 // ====== น้ำหนักโมเดลความสุก (จาก train_ripeness.py → web/ripeness_weights.json) ======
