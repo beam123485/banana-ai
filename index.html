@@ -86,8 +86,8 @@
 
   <section class="card">
     <h2>AI ตัวนี้ทำงานยังไง</h2>
-    <div class="pipe"><b>ภาพ</b>→<b>YOLOv8 หากล้วย (COCO)</b>→<b>ตัดภาพตามกรอบ</b>→<b>HSV + ตัดฉากหลัง</b>→<b>ค่าสี HSV + ฮิสโตแกรมเฉดสี + จุดกระ</b>→<b>Logistic Regression</b>→<b>ระดับความสุก</b>&nbsp;+&nbsp;<b>Linear Regression</b>→<b>ยังกินได้อีกกี่วัน</b></div>
-    <p class="sub" style="font-size:14px">YOLOv8n ใช้โมเดลตั้งต้นที่เรียนจากภาพทั่วไป (COCO) เลือกเฉพาะคลาส banana ส่วนโมเดลความสุกเทรนเองจากภาพกล้วย ประมวลผลทั้งหมดในเบราว์เซอร์ของคุณ ภาพไม่ถูกส่งไปที่ไหน</p>
+    <div class="pipe"><b>ภาพ</b>→<b>YOLOv8 หากล้วย (COCO)</b>→<b>ตัดภาพตามกรอบ</b>→<b>CNN (YOLOv8n-cls)</b>&nbsp;+&nbsp;<b>ค่าสี HSV → Logistic Regression</b>→<b>ผสมผล + กฎตรวจสี</b>→<b>ระดับความสุก</b>&nbsp;+&nbsp;<b>Linear Regression</b>→<b>ยังกินได้อีกกี่วัน</b></div>
+    <p class="sub" style="font-size:14px">YOLOv8s ใช้โมเดลตั้งต้นที่เรียนจากภาพทั่วไป (COCO) เลือกเฉพาะคลาส banana ส่วนโมเดลความสุก 2 ตัว (CNN และ HSV + Logistic Regression) เทรนเองจากภาพกล้วยกว่า 4,000 ภาพ ประมวลผลทั้งหมดในเบราว์เซอร์ของคุณ ภาพไม่ถูกส่งไปที่ไหน</p>
   </section>
 </main>
 <footer>สุกยัง? (SukYang) · Mini Project · AI for EE (67342EPE1)</footer>
@@ -97,8 +97,13 @@
 const MODEL = {"classes": ["Green", "Semi-ripe", "Ripe", "Overripe"], "features": ["H_mean", "S_mean", "V_mean", "H_std", "S_std", "V_std", "dark_ratio", "brown_ratio", "green_ratio", "yellow_ratio", "dull_ratio", "hue_lt12", "hue_12_16", "hue_16_20", "hue_20_24", "hue_24_28", "hue_28_32", "hue_32_36", "hue_ge36", "spot_local"], "mean": [25.878855, 156.264476, 126.151524, 4.794578, 43.771186, 35.990857, 0.244827, 0.093436, 0.156309, 0.449624, 0.178596, 0.007126, 0.067373, 0.106379, 0.220257, 0.097544, 0.076933, 0.087816, 0.091746, 0.131894], "scale": [7.130468, 43.481746, 33.785887, 3.875328, 10.005705, 12.124387, 0.225503, 0.122999, 0.223782, 0.331429, 0.20535, 0.016985, 0.09868, 0.137937, 0.280503, 0.160296, 0.147918, 0.179235, 0.16535, 0.111143], "coef": [[0.736138, -0.064857, -1.902617, 0.235541, -0.34535, 0.164504, -0.849475, -1.421404, 0.638657, -0.850169, 1.109276, -0.499431, 0.832818, 0.99456, -0.986447, -0.692987, 0.596645, 0.153406, 1.528316, -0.131719], [-0.237806, 1.36971, -0.599599, 0.037797, -0.658745, -0.10495, 0.462413, 0.765576, 0.782526, 0.113637, -0.126774, 0.29616, -1.918353, -0.565379, -0.180041, 0.711035, 0.503308, 0.134119, -0.02405, -0.545912], [-0.746179, -1.200911, 1.531584, -0.194265, 1.195492, 0.572491, -0.781299, 0.20004, 0.575496, 1.312592, 1.006426, -0.058231, 0.161588, -0.482473, 0.303891, -0.134127, -0.312527, 1.627411, -0.492426, -0.621989], [0.247847, -0.103942, 0.970632, -0.079073, -0.191396, -0.632045, 1.16836, 0.455787, -1.996678, -0.57606, -1.988928, 0.261502, 0.923947, 0.053291, 0.862597, 0.116079, -0.787427, -1.914936, -1.01184, 1.29962]], "intercept": [1.414487, 0.414012, 0.860678, -2.689177]};
 // ====== โมเดลทำนายวัน (จาก train_days.py → web/days_weights.json) ======
 const DAYS = {"model": "Linear (\u0e2a\u0e31\u0e14\u0e2a\u0e48\u0e27\u0e19\u0e08\u0e38\u0e14/\u0e2a\u0e35 3 \u0e1f\u0e35\u0e40\u0e08\u0e2d\u0e23\u0e4c)", "mae": 0.759, "max_day": 7, "idx": [6, 7, 9], "mean": [0.322971, 0.220992, 0.452586], "scale": [0.162477, 0.137463, 0.256925], "coef": [-0.703413, -0.760876, -3.18726], "intercept": 3.278788};
-const YOLO_FILE = 'yolo_coco.onnx';   // YOLOv8n (COCO) — ใช้เฉพาะคลาส banana
+const YOLO_PARTS = ['yolo_s416.part1', 'yolo_s416.part2', 'yolo_s416.part3', 'yolo_s416.part4'];   // YOLOv8s (COCO) แบ่งเป็น 4 ไฟล์ (GitHub อัปผ่านเว็บไฟล์ใหญ่ไม่ได้) — ใช้เฉพาะคลาส banana
 const YOLO_SIZE = 416;
+const CNN_FILE = 'ripeness_cnn.onnx';  // CNN (YOLOv8n-cls) เทรนเองจาก train_cnn.py
+const CNN_SIZE = 224;
+// ผสมผล: CNN 80% + HSV/Logistic Regression 20% แล้วตรวจด้วยกฎสีเขียว + กฎกันทาย "งอม" เกินจริง
+// (ค่าเหล่านี้เลือกจากการทดสอบ: ชุด test 96.8%, ชุดจำลองแพ็กเกจ 93.6%, รูปจริง 34/35)
+const FUSE = {w_cnn: 0.8, green_to_unripe: 0.4, green_to_semi: 0.2, over_veto: 0.1};
 const BANANA_ROW = 4 + 46;             // แถวคะแนนของคลาส banana (COCO id 46)
 const CONF = 0.3;
 const CAM_CROP = 0.8;                   // กล้อง: ใช้ 80% ตรงกลางของภาพ (สี่เหลี่ยมจัตุรัส)
@@ -229,6 +234,8 @@ const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; 
 const frame = mk(1, 1), fctx = frame.getContext('2d', {willReadFrequently:true});
 const lb = mk(YOLO_SIZE, YOLO_SIZE), lctx = lb.getContext('2d', {willReadFrequently:true});
 const cropC = mk(SIZE, SIZE), cctx = cropC.getContext('2d', {willReadFrequently:true});
+const cnnC = mk(CNN_SIZE, CNN_SIZE), nctx = cnnC.getContext('2d', {willReadFrequently:true});
+let cnnSession = null;
 const view = $('view'), vctx = view.getContext('2d');
 let session = null, stream = null, live = false, busy = false, lastResults = [];
 
@@ -237,8 +244,15 @@ function setStatus(t, cls) { $('status').textContent = t; $('status').className 
 async function loadModel() {
   try {
     ort.env.wasm.numThreads = 1;
-    session = await ort.InferenceSession.create(YOLO_FILE, {executionProviders: ['wasm']});
-    setStatus('✅ โมเดลพร้อมใช้งาน', 'ok');
+    setStatus('⏳ กำลังโหลดโมเดล (ครั้งแรก ~50 MB อาจใช้เวลาสักครู่)…');
+    const loadCnn = ort.InferenceSession.create(CNN_FILE, {executionProviders: ['wasm']})
+      .then(s => cnnSession = s).catch(e => console.warn('CNN load failed, ใช้ HSV อย่างเดียว', e));
+    const bufs = await Promise.all(YOLO_PARTS.map(f => fetch(f).then(r => { if (!r.ok) throw new Error(f + ' ' + r.status); return r.arrayBuffer(); })));
+    const all = new Uint8Array(bufs.reduce((a, b) => a + b.byteLength, 0)); let off = 0;
+    for (const b of bufs) { all.set(new Uint8Array(b), off); off += b.byteLength; }
+    session = await ort.InferenceSession.create(all, {executionProviders: ['wasm']});
+    await loadCnn;
+    setStatus(cnnSession ? '✅ โมเดลพร้อมใช้งาน (YOLOv8s + CNN + HSV)' : '✅ โมเดลพร้อมใช้งาน (ไม่มี CNN — ใช้ HSV อย่างเดียว)', 'ok');
   } catch (e) {
     console.error(e);
     setStatus('⚠️ โหลดโมเดล YOLO ไม่สำเร็จ — จะวิเคราะห์ทั้งภาพแทน (' + e.message + ')', 'err');
@@ -261,14 +275,27 @@ async function detect() {                     // ใช้ภาพใน frame 
   return yoloDecode(o.data, o.dims[2], CONF, sc, px, py, W, H, BANANA_ROW);
 }
 
-function ripeness(x1, y1, x2, y2) {
+async function cnnPredict(ax, ay, bw, bh) {   // ย่อภาพให้ด้านยาว = 224 แล้วเติมขอบเทา 114 ให้เป็นจัตุรัส (เหมือนตอนเทรน)
+  if (!cnnSession) return null;
+  const k = CNN_SIZE / Math.max(bw, bh), nw = Math.max(1, Math.round(bw * k)), nh = Math.max(1, Math.round(bh * k));
+  nctx.fillStyle = 'rgb(114,114,114)'; nctx.fillRect(0, 0, CNN_SIZE, CNN_SIZE);
+  nctx.drawImage(frame, ax, ay, bw, bh, Math.floor((CNN_SIZE - nw) / 2), Math.floor((CNN_SIZE - nh) / 2), nw, nh);
+  const d = nctx.getImageData(0, 0, CNN_SIZE, CNN_SIZE).data, N = CNN_SIZE * CNN_SIZE, t = new Float32Array(3 * N);
+  for (let i = 0; i < N; i++) { t[i] = d[4*i] / 255; t[N+i] = d[4*i+1] / 255; t[2*N+i] = d[4*i+2] / 255; }
+  const out = await cnnSession.run({ [cnnSession.inputNames[0]]: new ort.Tensor('float32', t, [1, 3, CNN_SIZE, CNN_SIZE]) });
+  return Array.from(out[cnnSession.outputNames[0]].data);
+}
+
+async function ripeness(x1, y1, x2, y2) {
   const w = x2 - x1, h = y2 - y1, p = 0.05;
   const ax = Math.max(0, x1 - p*w), ay = Math.max(0, y1 - p*h);
   const bx = Math.min(frame.width, x2 + p*w), by = Math.min(frame.height, y2 + p*h);
   cctx.drawImage(frame, ax, ay, bx - ax, by - ay, 0, 0, SIZE, SIZE);
   const {features} = extractFeatures(cctx.getImageData(0, 0, SIZE, SIZE).data);
-  const {prob, adjusted} = greenCheck(predict(features, MODEL), features);
-  return {prob, adjusted, days: daysLeft(features)};
+  const hsv = predict(features, MODEL), cnn = await cnnPredict(ax, ay, bx - ax, by - ay);
+  const mixed = cnn ? cnn.map((c, i) => FUSE.w_cnn * c + (1 - FUSE.w_cnn) * hsv[i]) : hsv;
+  const {prob, adjusted} = fuseRules(mixed, hsv, features);
+  return {prob, adjusted, cnn, hsv, days: daysLeft(features)};
 }
 
 function daysLeft(features) {
@@ -375,18 +402,17 @@ function extraBoxes(boxes) {
   return out;
 }
 
-// กฎตรวจสัดส่วนสีเขียว: ในชุดเทรน กล้วย "สุก" มีพิกเซลสีเขียวไม่เกิน ~5% และ "เริ่มสุก" ไม่เกิน ~10%
-// กล้วยเขียวอ่อนที่ถ่ายในแสงสว่าง (ไม่เหมือนรูปกล้วยดิบในชุดเทรนที่มืดกว่า) โมเดลอาจทายว่าสุก → ย้ายความน่าจะเป็นไปที่ ดิบ/เริ่มสุก
-function greenCheck(prob, features) {
-  const gr = features[8], k = prob.indexOf(Math.max(...prob)), name = MODEL.classes[k];
-  let tgt = -1;
-  if (gr >= 0.4 && name !== 'Green') tgt = 0;
-  else if (gr >= 0.2 && (name === 'Ripe' || name === 'Overripe')) tgt = 1;
-  if (tgt < 0) return {prob, adjusted: null};
-  const p = [...prob], from = name;
-  const moved = p[2] + p[3] + (tgt === 0 ? p[1] : 0);
-  p[2] = p[3] = 0; if (tgt === 0) p[1] = 0; p[tgt] += moved;
-  return {prob: p, adjusted: {from, fromP: Math.max(...prob), green: gr}};
+// กฎตรวจหลังผสมผล (ค่าเกณฑ์เลือกจากการทดสอบ)
+// 1) สีเขียว: ในชุดเทรน กล้วย "สุก" มีพิกเซลสีเขียวแทบไม่เกิน 5% → ถ้าเปลือกเขียว ≥40% = ดิบ, ≥20% (แต่ทายว่าสุก/งอม) = เริ่มสุก
+// 2) กันทาย "งอม" เกินจริง: รอยยับ/ตัวหนังสือบนถุงพลาสติกอาจหลอก CNN ว่าเป็นจุดดำ → ถ้า HSV ให้โอกาสงอม < 10% ให้ถือว่าสุก
+function fuseRules(prob, hsv, features) {
+  const gr = features[8], p = [...prob], top = () => p.indexOf(Math.max(...p));
+  const from = MODEL.classes[top()], fromP = Math.max(...p);
+  let why = null;
+  if (gr >= FUSE.green_to_unripe && top() !== 0) { p[0] += p[1] + p[2] + p[3]; p[1] = p[2] = p[3] = 0; why = 'green'; }
+  else if (gr >= FUSE.green_to_semi && top() >= 2) { p[1] += p[2] + p[3]; p[2] = p[3] = 0; why = 'green'; }
+  if (top() === 3 && hsv[3] < FUSE.over_veto) { p[2] += p[3]; p[3] = 0; why = 'over'; }
+  return {prob: p, adjusted: why ? {why, from, fromP, green: gr} : null};
 }
 
 async function analyze() {
@@ -394,8 +420,9 @@ async function analyze() {
   if (boxes.length) boxes = boxes.concat(extraBoxes(boxes));
   else { const b = blobBox(); if (b) boxes = [b]; }
   if (!boxes.length) { fallback = true; boxes = [{x1:0, y1:0, x2:frame.width, y2:frame.height, score:0}]; }
-  const res = boxes.map(b => { const {prob, adjusted, days} = ripeness(b.x1, b.y1, b.x2, b.y2), k = prob.indexOf(Math.max(...prob));
-                               return {...b, prob, adjusted, days, name: MODEL.classes[k]}; });
+  const res = [];
+  for (const b of boxes) { const {prob, adjusted, cnn, hsv, days} = await ripeness(b.x1, b.y1, b.x2, b.y2), k = prob.indexOf(Math.max(...prob));
+                           res.push({...b, prob, adjusted, cnn, hsv, days, name: MODEL.classes[k]}); }
   res.sort((a, b) => a.x1 - b.x1);
   return {res, fallback};
 }
@@ -430,7 +457,8 @@ function showResults(res, fallback) {
     return `<div class="item"><h3 style="color:${L.color}">${fallback ? 'ทั้งภาพ' : '#' + (i+1)} · ${L.th} (${r.name}) ${(Math.max(...r.prob)*100).toFixed(1)}%</h3>` +
       `<div class="days">${daysText(r).long}</div>` +
       MODEL.classes.map((c, j) => `<div class="bar"><span>${LABELS[c].th}</span><div class="track"><div class="fill" style="width:${(r.prob[j]*100).toFixed(1)}%;background:${LABELS[c].color}"></div></div><span>${(r.prob[j]*100).toFixed(1)}%</span></div>`).join('') +
-      (r.adjusted ? `<div class="sub" style="font-size:13px">🟢 เปลือกยังเป็นสีเขียว ${(r.adjusted.green*100).toFixed(0)}% จึงปรับผล (โมเดลเดิมทาย ${LABELS[r.adjusted.from].th} ${(r.adjusted.fromP*100).toFixed(0)}%)</div>` : '') +
+      (r.cnn ? `<div class="sub" style="font-size:13px">🧠 CNN: ${LABELS[MODEL.classes[r.cnn.indexOf(Math.max(...r.cnn))]].th} ${(Math.max(...r.cnn)*100).toFixed(0)}% · 🎨 HSV: ${LABELS[MODEL.classes[r.hsv.indexOf(Math.max(...r.hsv))]].th} ${(Math.max(...r.hsv)*100).toFixed(0)}%</div>` : '') +
+      (r.adjusted ? `<div class="sub" style="font-size:13px">${r.adjusted.why === 'green' ? `🟢 เปลือกยังเป็นสีเขียว ${(r.adjusted.green*100).toFixed(0)}%` : '🔍 สีเปลือกไม่มีจุดดำ/น้ำตาลมากพอจะเป็นงอม'} จึงปรับผล (ผลผสมเดิม ${LABELS[r.adjusted.from].th} ${(r.adjusted.fromP*100).toFixed(0)}%)</div>` : '') +
       (fallback ? '' : `<div class="sub" style="font-size:13px">${r.blob ? 'YOLO ไม่เห็นกล้วย (อาจอยู่ในแพ็กเกจ) จึงหาจากบริเวณสีกล้วยแทน' : r.extra ? 'YOLO มองข้ามลูกนี้ (อาจโดนฉลากบังหรือวางชิดลูกอื่น) จึงหาเพิ่มจากบริเวณสีกล้วย' : 'YOLO มั่นใจว่าเป็นกล้วย ' + (r.score*100).toFixed(0) + '%'}</div>`) + '</div>';
   }).join('');
   const w = $('warn'), msgs = [];
