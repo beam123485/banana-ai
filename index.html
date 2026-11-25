@@ -103,7 +103,7 @@ const CNN_FILE = 'ripeness_cnn.onnx';  // CNN (YOLOv8n-cls) เทรนเอ�
 const CNN_SIZE = 224;
 // ผสมผล: CNN 80% + HSV/Logistic Regression 20% แล้วตรวจด้วยกฎสีเขียว + กฎกันทาย "งอม" เกินจริง
 // (ค่าเหล่านี้เลือกจากการทดสอบ: ชุด test 96.8%, ชุดจำลองแพ็กเกจ 93.6%, รูปจริง 34/35)
-const FUSE = {w_cnn: 0.8, green_to_unripe: 0.4, green_to_semi: 0.2, over_veto: 0.1};
+const FUSE = {w_cnn: 0.8, green_to_unripe: 0.4, green_to_semi: 0.2, over_veto: 0.1, mixed_yellow: 0.3, mixed_cnn: 0.9};
 const BANANA_ROW = 4 + 46;             // แถวคะแนนของคลาส banana (COCO id 46)
 const CONF = 0.3;
 const CAM_CROP = 0.8;                   // กล้อง: ใช้ 80% ตรงกลางของภาพ (สี่เหลี่ยมจัตุรัส)
@@ -294,7 +294,7 @@ async function ripeness(x1, y1, x2, y2) {
   const {features} = extractFeatures(cctx.getImageData(0, 0, SIZE, SIZE).data);
   const hsv = predict(features, MODEL), cnn = await cnnPredict(ax, ay, bx - ax, by - ay);
   const mixed = cnn ? cnn.map((c, i) => FUSE.w_cnn * c + (1 - FUSE.w_cnn) * hsv[i]) : hsv;
-  const {prob, adjusted} = fuseRules(mixed, hsv, features);
+  const {prob, adjusted} = fuseRules(mixed, hsv, features, cnn);
   return {prob, adjusted, cnn, hsv, days: daysLeft(features)};
 }
 
@@ -404,12 +404,15 @@ function extraBoxes(boxes) {
 
 // กฎตรวจหลังผสมผล (ค่าเกณฑ์เลือกจากการทดสอบ)
 // 1) สีเขียว: ในชุดเทรน กล้วย "สุก" มีพิกเซลสีเขียวแทบไม่เกิน 5% → ถ้าเปลือกเขียว ≥40% = ดิบ, ≥20% (แต่ทายว่าสุก/งอม) = เริ่มสุก
+//    ยกเว้นหวีที่มีลูกเหลืองปนลูกเขียว (สีเหลือง ≥30% และ CNN มั่นใจว่าสุก ≥90%) = เริ่มสุก
 // 2) กันทาย "งอม" เกินจริง: รอยยับ/ตัวหนังสือบนถุงพลาสติกอาจหลอก CNN ว่าเป็นจุดดำ → ถ้า HSV ให้โอกาสงอม < 10% ให้ถือว่าสุก
-function fuseRules(prob, hsv, features) {
-  const gr = features[8], p = [...prob], top = () => p.indexOf(Math.max(...p));
+function fuseRules(prob, hsv, features, cnn) {
+  const gr = features[8], ye = features[9], p = [...prob], top = () => p.indexOf(Math.max(...p));
   const from = MODEL.classes[top()], fromP = Math.max(...p);
   let why = null;
-  if (gr >= FUSE.green_to_unripe && top() !== 0) { p[0] += p[1] + p[2] + p[3]; p[1] = p[2] = p[3] = 0; why = 'green'; }
+  const mixedBunch = cnn && ye >= FUSE.mixed_yellow && cnn[2] + cnn[3] >= FUSE.mixed_cnn;   // หวีที่มีทั้งลูกเหลืองและลูกเขียว
+  if (gr >= FUSE.green_to_unripe && top() !== 0 && !(mixedBunch && top() >= 2)) { p[0] += p[1] + p[2] + p[3]; p[1] = p[2] = p[3] = 0; why = 'green'; }
+  else if (gr >= FUSE.green_to_unripe && mixedBunch && top() >= 2) { p[1] += p[2] + p[3]; p[2] = p[3] = 0; why = 'mixed'; }
   else if (gr >= FUSE.green_to_semi && top() >= 2) { p[1] += p[2] + p[3]; p[2] = p[3] = 0; why = 'green'; }
   if (top() === 3 && hsv[3] < FUSE.over_veto) { p[2] += p[3]; p[3] = 0; why = 'over'; }
   return {prob: p, adjusted: why ? {why, from, fromP, green: gr} : null};
@@ -458,7 +461,7 @@ function showResults(res, fallback) {
       `<div class="days">${daysText(r).long}</div>` +
       MODEL.classes.map((c, j) => `<div class="bar"><span>${LABELS[c].th}</span><div class="track"><div class="fill" style="width:${(r.prob[j]*100).toFixed(1)}%;background:${LABELS[c].color}"></div></div><span>${(r.prob[j]*100).toFixed(1)}%</span></div>`).join('') +
       (r.cnn ? `<div class="sub" style="font-size:13px">🧠 CNN: ${LABELS[MODEL.classes[r.cnn.indexOf(Math.max(...r.cnn))]].th} ${(Math.max(...r.cnn)*100).toFixed(0)}% · 🎨 HSV: ${LABELS[MODEL.classes[r.hsv.indexOf(Math.max(...r.hsv))]].th} ${(Math.max(...r.hsv)*100).toFixed(0)}%</div>` : '') +
-      (r.adjusted ? `<div class="sub" style="font-size:13px">${r.adjusted.why === 'green' ? `🟢 เปลือกยังเป็นสีเขียว ${(r.adjusted.green*100).toFixed(0)}%` : '🔍 สีเปลือกไม่มีจุดดำ/น้ำตาลมากพอจะเป็นงอม'} จึงปรับผล (ผลผสมเดิม ${LABELS[r.adjusted.from].th} ${(r.adjusted.fromP*100).toFixed(0)}%)</div>` : '') +
+      (r.adjusted ? `<div class="sub" style="font-size:13px">${r.adjusted.why === 'green' ? `🟢 เปลือกยังเป็นสีเขียว ${(r.adjusted.green*100).toFixed(0)}%` : r.adjusted.why === 'mixed' ? `🟡🟢 มีทั้งลูกเหลืองและลูกเขียว (เขียว ${(r.adjusted.green*100).toFixed(0)}%)` : '🔍 สีเปลือกไม่มีจุดดำ/น้ำตาลมากพอจะเป็นงอม'} จึงปรับผล (ผลผสมเดิม ${LABELS[r.adjusted.from].th} ${(r.adjusted.fromP*100).toFixed(0)}%)</div>` : '') +
       (fallback ? '' : `<div class="sub" style="font-size:13px">${r.blob ? 'YOLO ไม่เห็นกล้วย (อาจอยู่ในแพ็กเกจ) จึงหาจากบริเวณสีกล้วยแทน' : r.extra ? 'YOLO มองข้ามลูกนี้ (อาจโดนฉลากบังหรือวางชิดลูกอื่น) จึงหาเพิ่มจากบริเวณสีกล้วย' : 'YOLO มั่นใจว่าเป็นกล้วย ' + (r.score*100).toFixed(0) + '%'}</div>`) + '</div>';
   }).join('');
   const w = $('warn'), msgs = [];
