@@ -314,6 +314,18 @@
   .chip{font-weight:600}
   .hero .tag{max-width:none;font-size:13px}
   .hero .tag span{white-space:nowrap}
+  /* ===== เมนูแนะนำ + ไม่ใช่กล้วย ===== */
+  .menu{margin:16px 0 4px}
+  .menu h4{margin:0 0 4px;font-size:14px;font-weight:600;color:var(--muted);font-family:"Noto Sans Thai",system-ui,sans-serif}
+  .menu ul{list-style:none;margin:0;padding:0}
+  .menu li{display:flex;flex-direction:column;gap:1px;padding:9px 0 9px 14px;border-top:1.5px solid rgba(28,27,24,.15);position:relative}
+  .menu li::before{content:"";position:absolute;left:0;top:17px;width:6px;height:6px;background:var(--ink)}
+  .menu li b{font-weight:600;font-size:16px}
+  .menu li span{font-size:13.5px;color:var(--muted);line-height:1.5}
+  .nb{padding:18px 0 8px}
+  .nb b{display:block;font-family:"Mitr","Noto Sans Thai",sans-serif;font-weight:600;font-size:30px;line-height:1.2}
+  .nb p{margin:8px 0 0;font-size:16px}
+  .nb p.sub{font-size:14px}
 </style>
 </head>
 <body>
@@ -559,6 +571,38 @@ const LABELS = {
   'Early-over':{th:'เริ่มงอม', en:'Early overripe', color:'#b07a10'},
   'Overripe': {th:'งอม',      en:'Overripe',       color:'#6b4a2b'},
 };
+
+// ===== ชื่อวัตถุ 80 คลาสของ COCO (YOLO) ใช้บอกว่าสิ่งที่เห็น "ไม่ใช่กล้วย" คืออะไร =====
+const COCO_EN = ['person','bicycle','car','motorcycle','airplane','bus','train','truck','boat','traffic light','fire hydrant','stop sign','parking meter','bench','bird','cat','dog','horse','sheep','cow','elephant','bear','zebra','giraffe','backpack','umbrella','handbag','tie','suitcase','frisbee','skis','snowboard','sports ball','kite','baseball bat','baseball glove','skateboard','surfboard','tennis racket','bottle','wine glass','cup','fork','knife','spoon','bowl','banana','apple','sandwich','orange','broccoli','carrot','hot dog','pizza','donut','cake','chair','couch','potted plant','bed','dining table','toilet','tv','laptop','mouse','remote','keyboard','cell phone','microwave','oven','toaster','sink','refrigerator','book','clock','vase','scissors','teddy bear','hair drier','toothbrush'];
+const COCO_TH = ['คน','จักรยาน','รถยนต์','มอเตอร์ไซค์','เครื่องบิน','รถบัส','รถไฟ','รถบรรทุก','เรือ','สัญญาณไฟจราจร','หัวจ่ายน้ำดับเพลิง','ป้ายหยุด','มิเตอร์จอดรถ','ม้านั่ง','นก','แมว','สุนัข','ม้า','แกะ','วัว','ช้าง','หมี','ม้าลาย','ยีราฟ','เป้สะพายหลัง','ร่ม','กระเป๋าถือ','เนกไท','กระเป๋าเดินทาง','จานร่อน','สกี','สโนว์บอร์ด','ลูกบอล','ว่าว','ไม้เบสบอล','ถุงมือเบสบอล','สเก็ตบอร์ด','กระดานโต้คลื่น','ไม้เทนนิส','ขวด','แก้วไวน์','ถ้วย','ส้อม','มีด','ช้อน','ชาม','กล้วย','แอปเปิล','แซนด์วิช','ส้ม','บร็อกโคลี','แครอท','ฮอตดอก','พิซซ่า','โดนัท','เค้ก','เก้าอี้','โซฟา','ต้นไม้ในกระถาง','เตียง','โต๊ะ','ชักโครก','ทีวี','แล็ปท็อป','เมาส์','รีโมท','คีย์บอร์ด','โทรศัพท์มือถือ','ไมโครเวฟ','เตาอบ','เครื่องปิ้งขนมปัง','อ่างล้างจาน','ตู้เย็น','หนังสือ','นาฬิกา','แจกัน','กรรไกร','ตุ๊กตาหมี','ไดร์เป่าผม','แปรงสีฟัน'];
+const FRUIT_LIKE = new Set([47, 48, 49, 50, 51, 52, 53, 54, 55]);   // ผลไม้/อาหารที่สีคล้ายกล้วย ถ้า YOLO เห็นแต่ของพวกนี้ ไม่ต้องไปหาก้อนสีกล้วยแทน
+let otherBest = null;
+function scanOther(data, N) {   // หาวัตถุที่ไม่ใช่กล้วยที่ YOLO มั่นใจที่สุด
+  let best = null;
+  for (let c = 0; c < 80; c++) { if (c === 46) continue; const base = (4 + c) * N;
+    for (let i = 0; i < N; i++) { const v = data[base + i]; if (v >= 0.4 && (!best || v > best.score)) best = {cls: c, score: v}; } }
+  return best;
+}
+
+// ===== เมนูแนะนำ: คะแนน = ผลรวม (% ของแต่ละระดับความสุก × ความเหมาะของเมนูกับระดับนั้น) =====
+//  a = [ดิบ, เริ่มสุก, สุก, งอม]
+const MENUS = [
+  {th:'กล้วยฉาบ', en:'Banana chips', nt:'หั่นบางทอดให้กรอบ ใช้กล้วยดิบจะไม่เหนียว', ne:'Slice thin and fry until crisp. Green bananas stay crunchy.', a:[1, .55, .1, 0]},
+  {th:'กล้วยต้ม / นึ่ง', en:'Boiled or steamed banana', nt:'ต้มหรือนึ่งทั้งเปลือกจนนุ่ม กินกับมะพร้าวขูด', ne:'Boil or steam in the peel until soft, serve with grated coconut.', a:[.9, .75, .15, 0]},
+  {th:'กินสดกับโยเกิร์ต', en:'Fresh with yogurt', nt:'เนื้อแน่น หวานพอดี หั่นใส่โยเกิร์ตหรือธัญพืช', ne:'Firm and mildly sweet. Slice over yogurt or cereal.', a:[0, .45, 1, .25]},
+  {th:'กล้วยทอด / กล้วยแขก', en:'Fried banana fritters', nt:'ชุบแป้งทอด ใช้กล้วยสุกที่เนื้อยังแน่น', ne:'Batter and fry. Ripe but still firm bananas hold their shape.', a:[0, .6, .9, .3]},
+  {th:'กล้วยปิ้ง / เผา', en:'Grilled banana', nt:'ปิ้งจนเนื้อนุ่ม ราดกะทิหรือน้ำผึ้ง', ne:'Grill until soft, drizzle with coconut cream or honey.', a:[0, .25, .85, .6]},
+  {th:'กล้วยบวชชี', en:'Bananas in coconut milk', nt:'เนื้อนุ่ม หวานธรรมชาติ ต้มกับกะทิ', ne:'Soft and naturally sweet, simmered in coconut milk.', a:[0, .1, .7, .9]},
+  {th:'ข้าวต้มมัด', en:'Sticky rice wrapped in banana leaf', nt:'ใช้กล้วยสุกนุ่มเป็นไส้ นึ่งจนหอม', ne:'Soft ripe banana as the filling, steamed until fragrant.', a:[0, 0, .65, .85]},
+  {th:'ขนมกล้วย', en:'Steamed banana cake', nt:'บดกล้วยงอมผสมแป้งกับมะพร้าว นึ่งให้หอมหวาน', ne:'Mash overripe banana with flour and coconut, then steam.', a:[0, 0, .3, 1]},
+  {th:'ขนมปังกล้วยหอม / แพนเค้ก', en:'Banana bread or pancakes', nt:'กล้วยงอมช่วยให้หวานและเนื้อนุ่มโดยไม่ต้องเติมน้ำตาลมาก', ne:'Overripe banana adds sweetness and moisture with little extra sugar.', a:[0, 0, .2, 1]},
+  {th:'สมูตตี้กล้วย', en:'Banana smoothie', nt:'แช่แข็งแล้วปั่นกับนมหรือโยเกิร์ต หวานเนียนในตัว', ne:'Freeze, then blend with milk or yogurt for a naturally sweet, creamy drink.', a:[0, .05, .35, 1]},
+];
+function menuFor(r) {
+  let p = r.prob.slice(0, 4);
+  if (r.name === 'Early-over') p = p.map((v, i) => .5 * v + .5 * [0, 0, .45, .55][i]);
+  return MENUS.map(m => ({m, sc: m.a.reduce((t, w, i) => t + w * p[i], 0)})).sort((x, y) => y.sc - x.sc).slice(0, 3).map(x => x.m);
+}
 // "เริ่มงอม" = ช่วงระหว่างสุกกับงอม: ผลรวมออกมาเป็น "สุก" แต่ CNN เห็นว่างอมเกินครึ่ง (เช่น มีจุดน้ำตาลเยอะ)
 function stageName(prob, cnn) {
   let n = MODEL.classes[prob.indexOf(Math.max(...prob))];
@@ -794,6 +838,10 @@ async function detectRegion(sess, rx, ry, rw, rh, flip, post) {   // ตรว�
   const out = await sess.run({ [sess.inputNames[0]]: new ort.Tensor('float32', t, [1, 3, YOLO_SIZE, YOLO_SIZE]) });
   const o = out[sess.outputNames[0]];
   // ถ้าพลิกภาพ ให้ถอดพิกัด x กลับมาเป็นภาพจริง (ตรวจในภาพที่ถูกพลิก = ไม่ต้องใช้ padX เดิมของภาพจริง)
+  if (rx === 0 && ry === 0 && rw === frame.width && rh === frame.height) {
+    const ob = scanOther(o.data, o.dims[2]);
+    if (ob && (!otherBest || ob.score > otherBest.score)) otherBest = ob;
+  }
   const bs = yoloDecode(o.data, o.dims[2], CONF, sc, px, py, rw, rh, BANANA_ROW, post);
   return bs.map(b => flip ? {x1: rx + rw - b.x2, y1: ry + b.y1, x2: rx + rw - b.x1, y2: ry + b.y2, score: b.score}
                           : {x1: rx + b.x1, y1: ry + b.y1, x2: rx + b.x2, y2: ry + b.y2, score: b.score});
@@ -811,6 +859,7 @@ function fuseBoxes(a, b) {
 }
 async function detect(sess = session, strong = false) {   // ใช้ภาพใน frame canvas
   const W = frame.width, H = frame.height;
+  otherBest = null;
   if (!sess) return [];
   if (!strong) return detectRegion(sess, 0, 0, W, H, false, true);
   // โหมดละเอียด: ตรวจภาพปกติ + ภาพพลิก แล้วรวมผล
@@ -864,7 +913,7 @@ function colorMap(pix, ax, ay, bw, bh) {
     const [r, g, b] = MAP_COLORS[k]; img.data[4*i] = r; img.data[4*i+1] = g; img.data[4*i+2] = b; img.data[4*i+3] = 235; }
   x.putImageData(img, 0, 0);
   const tot = Math.max(1, cnt[1] + cnt[2] + cnt[3]);
-  return {canvas: c, ax, ay, bw, bh, green: cnt[1] / tot, yellow: cnt[2] / tot, brown: cnt[3] / tot};
+  return {canvas: c, ax, ay, bw, bh, green: cnt[1] / tot, yellow: cnt[2] / tot, brown: cnt[3] / tot, peel: (cnt[1] + cnt[2] + cnt[3]) / pix.length};
 }
 
 function daysLeft(features) {
@@ -926,7 +975,7 @@ function blobBoxes() {
   for (const c of comps) {                    // ก้อนเล็กที่อยู่ในกรอบของก้อนใหญ่กว่า (เช่น ก้านเขียวของหวีเหลือง) ไม่ต้องแยกเป็นกรอบใหม่
     const ea = (c.x2 - c.x1) * (c.y2 - c.y1);
     const inside = out.some(o => Math.max(0, Math.min(c.x2, o.x2) - Math.max(c.x1, o.x1)) * Math.max(0, Math.min(c.y2, o.y2) - Math.max(c.y1, o.y1)) > 0.5 * ea);
-    if (!inside && out.length < 4) out.push(c);
+    if (!inside && out.length < 4 && c.cnt / ea <= 0.88) out.push(c);   // ก้อนสี่เหลี่ยมทึบ (หน้าจอ/กระดาษ/ผนังสีเหลือง) ไม่ใช่กล้วย
   }
   return out.map(c => ({x1: c.x1 / k, y1: c.y1 / k, x2: Math.min(W, c.x2 / k), y2: Math.min(H, c.y2 / k), score: 0, blob: true}));
 }
@@ -1011,18 +1060,25 @@ function setStep(n) {   // 0 = ถ่ายรูป, 1 = AI ตรวจ, 2 = �
   document.querySelectorAll('#route u').forEach((el, i) => { el.classList.toggle('done', i < n); el.classList.toggle('flow', n === 1 && i === 1); });
 }
 async function analyze(fast = false) {
-  let boxes = await detect(fast && liveSession ? liveSession : session, !fast), fallback = false;
+  const sess = fast && liveSession ? liveSession : session;
+  let boxes = await detect(sess, !fast), fallback = false, notBanana = null;
+  const ob = otherBest;
   if (boxes.length) boxes = boxes.concat(extraBoxes(boxes));
+  else if (sess && ob && FRUIT_LIKE.has(ob.cls) && ob.score >= 0.5) notBanana = {cls: ob.cls, score: ob.score};   // เห็นแอปเปิล/ส้ม ฯลฯ ชัด ไม่ต้องเดาจากสี
   else boxes = blobBoxes();
-  if (!boxes.length) { fallback = true; boxes = [{x1:0, y1:0, x2:frame.width, y2:frame.height, score:0}]; }
+  if (!boxes.length && !notBanana) {
+    if (sess) notBanana = {cls: ob && ob.score >= 0.6 ? ob.cls : null, score: ob ? ob.score : 0};   // YOLO ไม่เห็นกล้วย (อาจเห็นอย่างอื่นชัดแทน)
+    else { fallback = true; boxes = [{x1:0, y1:0, x2:frame.width, y2:frame.height, score:0}]; }
+  }
   const res = [];
   for (const b of boxes) { const {prob, adjusted, cnn, hsv, cmap, days} = await ripeness(b.x1, b.y1, b.x2, b.y2), k = prob.indexOf(Math.max(...prob));
                            res.push({...b, prob, adjusted, cnn, hsv, cmap, days, name: stageName(prob, cnn)}); }
   res.sort((a, b) => a.x1 - b.x1);
-  return {res, fallback};
+  return {res, fallback, notBanana};
 }
 
-let showMap = false, lastDraw = null;
+let showMap = false, lastDraw = null, liveNb = null;
+const liveMsg = ['โหมดกล้องสด — กด "หยุดภาพและดูผล" เพื่อวิเคราะห์ละเอียด', 'Live mode. Tap “Freeze & see result” for a detailed analysis.'];
 function draw(res, fallback, base = frame) {
   lastDraw = [res, fallback];
   if (view.width !== base.width || view.height !== base.height) { view.width = base.width; view.height = base.height; }
@@ -1059,8 +1115,18 @@ function ripeT(r) {
   if (r.name === 'Early-over') t = Math.max(t, 0.76);
   return Math.min(0.97, Math.max(0.03, t));
 }
-function showResults(res, fallback) {
-  lastShow = [res, fallback];
+function showResults(res, fallback, notBanana = null) {
+  lastShow = [res, fallback, notBanana];
+  if (notBanana) {
+    $('result').style.display = 'block'; if (!live) setStep(2);
+    const k = notBanana.cls;
+    $('summary').innerHTML = '';
+    $('items').innerHTML = `<div class="nb"><b>${k === null ? T('ไม่พบกล้วยในภาพ', 'No banana found') : T('ไม่ใช่กล้วย', 'Not a banana')}</b>` +
+      `<p>${k === null ? T('ภาพนี้ไม่น่าจะมีกล้วย', 'This image doesn’t seem to contain a banana.') : T(`ภาพนี้ดูเหมือน “${COCO_TH[k]}” (มั่นใจ ${(notBanana.score*100).toFixed(0)}%) ไม่ใช่กล้วย`, `This looks like “${COCO_EN[k]}” (${(notBanana.score*100).toFixed(0)}% sure), not a banana.`)}</p>` +
+      `<p class="sub">${T('ลองถ่ายใหม่ให้เห็นกล้วยชัดขึ้น หรือใช้ภาพที่มีกล้วยอยู่กลางภาพ', 'Try again with the banana clearly in view, near the middle of the photo.')}</p></div>`;
+    $('warn').style.display = 'none'; $('warn').innerHTML = '';
+    return;
+  }
   $('result').style.display = 'block';
   if (!live) setStep(2);
   const counts = {};
@@ -1072,6 +1138,7 @@ function showResults(res, fallback) {
     return `<div class="item"><h3>${fallback ? T('ทั้งภาพ', 'Whole image') : T('กล้วย #', 'Banana #') + (i+1)} · ${(Math.max(...r.prob)*100).toFixed(1)}% <span style="display:none">(${r.name})</span><b style="color:${r.name === 'Green' ? '#3e8e41' : 'var(--ink)'}">${L[lang]}</b></h3>` +
       `<div class="days">${daysText(r).long}</div>` +
       `<div class="ruler"><div class="strip"></div><i class="pin" data-t="${(ripeT(r)*100).toFixed(1)}"></i><div class="ticks"><span>${LABELS.Green[lang]}</span><span>${LABELS["Semi-ripe"][lang]}</span><span>${LABELS.Ripe[lang]}</span><span>${LABELS.Overripe[lang]}</span></div></div>` +
+      `<div class="menu"><h4>${T('เมนูแนะนำ', 'What to make')}</h4><ul>${menuFor(r).map(m => `<li><b>${T(m.th, m.en)}</b><span>${T(m.nt, m.ne)}</span></li>`).join('')}</ul></div>` +
       `<details class="more"><summary>${T('ดูรายละเอียด', 'Details')}</summary>` +
       MODEL.classes.map((c, j) => `<div class="bar"><span>${LABELS[c][lang]}</span><div class="track"><div class="fill" style="width:${(r.prob[j]*100).toFixed(1)}%;background:${LABELS[c].color}"></div></div><span>${(r.prob[j]*100).toFixed(1)}%</span></div>`).join('') +
       (r.cmap ? `<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin:8px 0 2px"><div style="width:${r.cmap.green*100}%;background:#3caa28"></div><div style="width:${r.cmap.yellow*100}%;background:#ffc800"></div><div style="width:${r.cmap.brown*100}%;background:#6e3c19"></div></div>` +
@@ -1137,7 +1204,11 @@ async function analyzeLoop() {
     if (v.videoWidth) {
       loadFrame(v, v.videoWidth, v.videoHeight, true);
       liveTask = analyze(true); const r = await liveTask; liveTask = null;
-      if (live) lastResults = [smoothTracks(r.fallback ? [] : r.res), r.fallback && !tracks.length];
+      if (live) {
+        lastResults = [smoothTracks(r.fallback ? [] : r.res), r.fallback && !tracks.length];
+        const nb = r.notBanana && !tracks.length ? (r.notBanana.cls === null ? 'x' : r.notBanana.cls) : null;
+        if (nb !== liveNb) { liveNb = nb; if (nb === null) setStatus(liveMsg, 'ok'); else setStatus(nb === 'x' ? ['ไม่พบกล้วยในภาพ', 'No banana in view'] : [`ไม่ใช่กล้วย: ดูเหมือน “${COCO_TH[nb]}”`, `Not a banana: looks like “${COCO_EN[nb]}”`], 'err'); }
+      }
     }
     await new Promise(ok => setTimeout(ok, 30));   // เว้นจังหวะให้เบราว์เซอร์วาดภาพ
   }
@@ -1174,8 +1245,8 @@ $('shoot').onclick = async () => {               // หยุดภาพ แล
   frame.width = snapC.width; frame.height = snapC.height; fctx.drawImage(snapC, 0, 0);
   if (modelReady) { setStatus(['รอโมเดลโหลดให้เสร็จก่อน…', 'Waiting for the model to finish loading…']); await modelReady; }
   setStatus(['กำลังวิเคราะห์ละเอียด…', 'Running a detailed analysis…']);
-  const {res, fallback} = await analyze();
-  draw(res, fallback); showResults(res, fallback);
+  const {res, fallback, notBanana} = await analyze();
+  draw(res, fallback); showResults(res, fallback, notBanana);
   setStatus('');
   $('result').scrollIntoView({behavior:'smooth'});
 };
@@ -1189,8 +1260,8 @@ $('file').onchange = e => {
     if (modelReady) { setStatus(['รอโมเดลโหลดให้เสร็จก่อน…', 'Waiting for the model to finish loading…']); await modelReady; }
     loadFrame(im, im.naturalWidth, im.naturalHeight); URL.revokeObjectURL(im.src);
     setStatus(['กำลังวิเคราะห์…', 'Analysing…']);
-    const {res, fallback} = await analyze();
-    $('view').style.display = 'block'; draw(res, fallback); showResults(res, fallback);
+    const {res, fallback, notBanana} = await analyze();
+    $('view').style.display = 'block'; draw(res, fallback); showResults(res, fallback, notBanana);
     setStatus(session ? '' : ['ไม่ได้ใช้ YOLO', 'YOLO not used'], session ? 'ok' : 'err');
     $('view').scrollIntoView({behavior:'smooth', block:'start'});
   };
