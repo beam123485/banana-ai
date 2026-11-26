@@ -555,6 +555,7 @@ const DAYS = {"model": "Linear (\u0e2a\u0e31\u0e14\u0e2a\u0e48\u0e27\u0e19\u0e08
 const YOLO_PARTS = ['yolo_s416.part1', 'yolo_s416.part2', 'yolo_s416.part3', 'yolo_s416.part4'];   // YOLOv8s (COCO) แบ่งเป็น 4 ไฟล์ (GitHub อัปผ่านเว็บไฟล์ใหญ่ไม่ได้) — ใช้เฉพาะคลาส banana
 const YOLO_SIZE = 416;
 const LIVE_YOLO = 'yolo_coco.onnx';  // YOLOv8n ตัวเล็ก ใช้ตอนส่องกล้องสด (เร็วกว่า YOLOv8s ~3 เท่า)
+const VERIFIER_FILE = 'banana_verifier.onnx', VERIFIER_CFG = 'verifier_config.json';   // ตัวตรวจสอบว่ากรอบเป็นกล้วยจริงไหม (train_verifier.py) ไม่มีไฟล์ก็ใช้งานได้ตามปกติ
 const CNN_FILE = 'ripeness_cnn.onnx';  // CNN (YOLOv8n-cls) เทรนเองจาก train_cnn.py
 const CNN_SIZE = 224;
 // ผสมผล: CNN 80% + HSV/Logistic Regression 20% แล้วตรวจด้วยกฎสีเขียว + กฎกันทาย "งอม" เกินจริง
@@ -737,7 +738,7 @@ const frame = mk(1, 1), fctx = frame.getContext('2d', {willReadFrequently:true})
 const lb = mk(YOLO_SIZE, YOLO_SIZE), lctx = lb.getContext('2d', {willReadFrequently:true});
 const cropC = mk(SIZE, SIZE), cctx = cropC.getContext('2d', {willReadFrequently:true});
 const cnnC = mk(CNN_SIZE, CNN_SIZE), nctx = cnnC.getContext('2d', {willReadFrequently:true});
-let cnnSession = null, liveSession = null, liveLoading = null, liveTask = null;
+let verSession = null, verCfg = null, cnnSession = null, liveSession = null, liveLoading = null, liveTask = null;
 const snapC = mk(1, 1), snapX = snapC.getContext('2d');
 const view = $('view'), vctx = view.getContext('2d');
 let session = null, stream = null, live = false, busy = false, lastResults = [];
@@ -750,13 +751,16 @@ async function loadModel() {
     setStatus(['กำลังโหลดโมเดล (ครั้งแรก ~50 MB อาจใช้เวลาสักครู่)…', 'Loading model (first time ~50 MB, may take a moment)…']);
     const loadCnn = ort.InferenceSession.create(CNN_FILE, {executionProviders: ['wasm']})
       .then(s => cnnSession = s).catch(e => console.warn('CNN load failed, ใช้ HSV อย่างเดียว', e));
+    const loadVer = fetch(VERIFIER_CFG).then(r => r.ok ? r.json() : Promise.reject('no verifier'))
+      .then(c => { verCfg = c; return ort.InferenceSession.create(VERIFIER_FILE, {executionProviders: ['wasm']}); })
+      .then(s => verSession = s).catch(() => { verCfg = null; });
     const bufs = await Promise.all(YOLO_PARTS.map(f => fetch(f).then(r => { if (!r.ok) throw new Error(f + ' ' + r.status); return r.arrayBuffer(); }).then(b => { splashStep(splash.real + 0.17); return b; })));
     spMsgState = ['กำลังเตรียมความพร้อม…', 'Getting ready…']; renderDyn();
     const all = new Uint8Array(bufs.reduce((a, b) => a + b.byteLength, 0)); let off = 0;
     for (const b of bufs) { all.set(new Uint8Array(b), off); off += b.byteLength; }
     session = await ort.InferenceSession.create(all, {executionProviders: ['wasm']});
     splashStep(0.85);
-    await loadCnn;
+    await loadCnn; await loadVer;
     setStatus(cnnSession ? '' : ['โมเดลพร้อมใช้งาน (ไม่มี CNN — ใช้ HSV อย่างเดียว)', 'Model ready (no CNN — using HSV only)'], 'ok');
   } catch (e) {
     console.error(e);
@@ -881,15 +885,16 @@ async function detect(sess = session, strong = false) {   // ใช้ภาพ�
   }
   return boxes;
 }
-async function cnnPredict(ax, ay, bw, bh) {   // ย่อภาพให้ด้านยาว = 224 แล้วเติมขอบเทา 114 ให้เป็นจัตุรัส (เหมือนตอนเทรน)
-  if (!cnnSession) return null;
+async function cnnPredict(ax, ay, bw, bh) { return classify(cnnSession, ax, ay, bw, bh); }
+async function classify(sess, ax, ay, bw, bh) {   // ย่อภาพให้ด้านยาว = 224 แล้วเติมขอบเทา 114 ให้เป็นจัตุรัส (เหมือนตอนเทรน)
+  if (!sess) return null;
   const k = CNN_SIZE / Math.max(bw, bh), nw = Math.max(1, Math.round(bw * k)), nh = Math.max(1, Math.round(bh * k));
   nctx.fillStyle = 'rgb(114,114,114)'; nctx.fillRect(0, 0, CNN_SIZE, CNN_SIZE);
   nctx.drawImage(frame, ax, ay, bw, bh, Math.floor((CNN_SIZE - nw) / 2), Math.floor((CNN_SIZE - nh) / 2), nw, nh);
   const d = nctx.getImageData(0, 0, CNN_SIZE, CNN_SIZE).data, N = CNN_SIZE * CNN_SIZE, t = new Float32Array(3 * N);
   for (let i = 0; i < N; i++) { t[i] = d[4*i] / 255; t[N+i] = d[4*i+1] / 255; t[2*N+i] = d[4*i+2] / 255; }
-  const out = await cnnSession.run({ [cnnSession.inputNames[0]]: new ort.Tensor('float32', t, [1, 3, CNN_SIZE, CNN_SIZE]) });
-  return Array.from(out[cnnSession.outputNames[0]].data);
+  const out = await sess.run({ [sess.inputNames[0]]: new ort.Tensor('float32', t, [1, 3, CNN_SIZE, CNN_SIZE]) });
+  return Array.from(out[sess.outputNames[0]].data);
 }
 
 async function ripeness(x1, y1, x2, y2) {
@@ -1069,6 +1074,17 @@ async function analyze(fast = false) {
   if (!boxes.length && !notBanana) {
     if (sess) notBanana = {cls: ob && ob.score >= 0.6 ? ob.cls : null, score: ob ? ob.score : 0};   // YOLO ไม่เห็นกล้วย (อาจเห็นอย่างอื่นชัดแทน)
     else { fallback = true; boxes = [{x1:0, y1:0, x2:frame.width, y2:frame.height, score:0}]; }
+  }
+  if (verSession && verCfg && boxes.length && !fallback) {   // ตัวตรวจสอบ: กรอบไหนไม่ใช่กล้วย ตัดทิ้ง
+    const keep = [];
+    for (const b of boxes) {
+      const w = b.x2 - b.x1, h = b.y2 - b.y1, ax = Math.max(0, b.x1 - .05 * w), ay = Math.max(0, b.y1 - .05 * h);
+      const pr = await classify(verSession, ax, ay, Math.min(frame.width, b.x2 + .05 * w) - ax, Math.min(frame.height, b.y2 + .05 * h) - ay);
+      const thr = b.score >= 0.5 ? verCfg.reject_below / 10 : verCfg.reject_below;   // YOLO มั่นใจสูง -> ตัดเฉพาะเมื่อตัวตรวจสอบมั่นใจมากว่าไม่ใช่กล้วย
+      if (!pr || pr[verCfg.banana_index || 0] >= thr) keep.push(b);
+    }
+    boxes = keep;
+    if (!boxes.length) notBanana = {cls: ob && ob.score >= 0.6 ? ob.cls : null, score: ob ? ob.score : 0};
   }
   const res = [];
   for (const b of boxes) { const {prob, adjusted, cnn, hsv, cmap, days} = await ripeness(b.x1, b.y1, b.x2, b.y2), k = prob.indexOf(Math.max(...prob));

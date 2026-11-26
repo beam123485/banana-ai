@@ -1,0 +1,8 @@
+{
+ "size": 224,
+ "banana_index": 0,
+ "reject_below": 0.0152,
+ "pass_real": 0.9759036144578314,
+ "pass_coco": 0.9830508474576272,
+ "reject_coco": 0.9162995594713657
+}
