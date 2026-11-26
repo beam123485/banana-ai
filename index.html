@@ -2,6 +2,7 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
+<meta name="theme-color" content="#ffd23f">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/x-icon" href="favicon.ico">
@@ -202,6 +203,38 @@
   #route u.flow b:nth-child(4){animation-delay:.45s}#route u.flow b:nth-child(5){animation-delay:.6s}
   @keyframes flowdot{0%,100%{background:rgba(255,255,255,.25);transform:scale(1)}35%{background:var(--banana);transform:scale(1.7)}}
   @media (prefers-reduced-motion:reduce){#route u.flow b{animation:none;background:var(--banana)}}
+  /* ===== ธีมเหลืองกล้วย + ปุ่มภาษา ===== */
+  .app{background:#ffd23f}
+  .hero{background:radial-gradient(90% 70% at 100% 0%,rgba(255,255,255,.35) 0%,rgba(255,255,255,0) 60%),linear-gradient(165deg,#ffe066 0%,#ffd23f 100%)!important;color:var(--ink)}
+  .hero h1,.hero-t{color:var(--ink)!important}
+  .hero .tag,.hero-s{color:rgba(29,36,30,.7)!important}
+  .hero .logo>rect:first-child{fill:#1d241e!important}
+  .hero .logo path{fill:#ffd23f!important;stroke:#ffd23f!important}
+  .hero .logo g rect{fill:#ffd23f!important}
+  .hero .aboutBtn,.hero .langBtn{background:transparent;color:var(--ink);border:1.5px solid rgba(29,36,30,.28);transition:background .2s,border-color .2s}
+  .hero .aboutBtn:hover,.hero .langBtn:hover{background:rgba(29,36,30,.08);border-color:rgba(29,36,30,.5);color:var(--ink)}
+  .hero .aboutBtn{margin-left:8px}
+  .hero .langBtn{margin-left:auto;align-self:flex-start;height:40px;padding:0 12px;border-radius:99px;display:flex;align-items:center;gap:7px;font-family:"Prompt",sans-serif;font-size:13px;font-weight:500;letter-spacing:.4px;cursor:pointer}
+  .langBtn span{opacity:.45;transition:opacity .2s}
+  html[lang=th] .langBtn [data-l=th],html[lang=en] .langBtn [data-l=en]{opacity:1;font-weight:700}
+  .langBtn span{line-height:1;display:block}
+  .langBtn [data-l=en]{border-left:1.5px solid rgba(29,36,30,.3);padding-left:8px}
+  .hero .brand{flex:1 1 0;min-width:0}
+  html[lang=en] .hero h1{font-size:clamp(26px,7.4vw,34px);letter-spacing:-.4px;white-space:nowrap}
+  .hero .langBtn{padding:0 10px;gap:6px}
+  @media (max-width:380px){.hero .logo{width:50px;height:50px;border-radius:15px}.hero header{gap:10px}.hero .langBtn{padding:0 10px;gap:6px}.hero .aboutBtn{margin-left:6px;width:38px;height:38px}}
+  html[lang=en] .sp-en{display:none}
+  #route .rt{color:rgba(29,36,30,.6)}
+  #route .rt i{border-color:rgba(29,36,30,.3);color:rgba(29,36,30,.7)}
+  #route .rt.on{color:var(--ink)}
+  #route .rt.on i{background:var(--ink);border-color:var(--ink);color:#ffd23f}
+  #route .rt.done{color:rgba(29,36,30,.85)}
+  #route .rt.done i{background:transparent;border-color:var(--ink);color:var(--ink)}
+  #route u b{background:rgba(29,36,30,.25)}
+  #route u.done b{background:var(--ink)}
+  #route u.flow b{animation:flowdot2 1.2s ease-in-out infinite}
+  @keyframes flowdot2{0%,100%{background:rgba(29,36,30,.25);transform:scale(1)}35%{background:var(--ink);transform:scale(1.7)}}
+  @media (prefers-reduced-motion:reduce){#route u.flow b{animation:none;background:var(--ink)}}
 </style>
 </head>
 <body>
@@ -223,6 +256,7 @@
     <h1>สุกยัง?</h1>
     <p class="tag">SukYang · ถามกล้วยไม่ได้ ถาม AI แทน</p>
   </div>
+  <button class="langBtn" id="langBtn" type="button" aria-label="Language / ภาษา"><span data-l="th">TH</span><span data-l="en">EN</span></button>
   <button class="aboutBtn" id="aboutBtn" type="button" aria-label="เกี่ยวกับโปรเจกต์" title="เกี่ยวกับโปรเจกต์"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r=".6" fill="currentColor"/></svg></button>
 </header>
   <h2 class="hero-t">ถ่ายรูปกล้วย<br>แล้วดูว่าสุกยัง</h2>
@@ -312,6 +346,107 @@
 
 
 <script>
+// ====== ภาษา (ไทย = ค่าเริ่มต้น / English) ======
+let lang = 'th';
+try { if (localStorage.getItem('sukyang-lang') === 'en') lang = 'en'; } catch (e) {}
+const T = (th, en) => lang === 'en' ? en : th;
+const EN = {
+  'กำลังเตรียมความพร้อม…': 'Getting ready…',
+  'ความรู้เรื่องกล้วย': 'Banana tips',
+  'สุกยัง?': 'SukYang?',
+  'SukYang · ถามกล้วยไม่ได้ ถาม AI แทน': 'Not sure if it’s ripe? Ask the AI.',
+  'เกี่ยวกับโปรเจกต์': 'About the project',
+  'ถ่ายรูปกล้วย': 'Snap a banana,',
+  'แล้วดูว่าสุกยัง': 'see if it’s ripe',
+  'AI ดูสีเปลือก บอกความสุกและวันที่ยังกินได้': 'AI reads the peel colour and tells you how ripe it is and how many days are left.',
+  'ขั้นตอน': 'Steps',
+  'ถ่ายรูป': 'Snap',
+  'AI ตรวจ': 'Analyse',
+  'ดูผล': 'Result',
+  '🖼️ อัปโหลดรูป': '🖼️ Upload photo',
+  '⏳ กำลังโหลดโมเดล AI…': '⏳ Loading AI model…',
+  'วางกล้วยให้อยู่ในกรอบ': 'Keep the banana inside the frame',
+  'เปิดกล้องหรืออัปโหลดรูป แล้วดูว่าสุกยัง': 'Open the camera or upload a photo to check ripeness',
+  'เขียว (ดิบ)': 'Green (unripe)',
+  'เหลือง (สุก)': 'Yellow (ripe)',
+  'น้ำตาล/จุดดำ (งอม)': 'Brown / dark spots (overripe)',
+  '⏸ หยุดภาพและดูผล': '⏸ Freeze & see result',
+  'ถ่ายยังไงให้ตรวจแม่น': 'How to get an accurate scan',
+  'โหมดกล้องจะตรวจเฉพาะกรอบสี่เหลี่ยมที่เห็นบนจอ ให้กล้วยอยู่กลางกรอบ': 'Camera mode only checks the square frame on screen, so keep the banana in the middle.',
+  'ให้เห็นตัวกล้วยชัด ไม่โดนบังมาก': 'Make sure the banana is clearly visible and not blocked.',
+  'แสงสว่างพอ ไม่ใช้ไฟสีเหลืองจัด': 'Use good light, and avoid strongly yellow lighting.',
+  'ถ้ากล้วยเป็นหวี ระบบจะตีกรอบรวมทั้งหวีแล้วบอกความสุกเฉลี่ยของหวีนั้น': 'For a whole hand of bananas, the system boxes the whole hand and reports its average ripeness.',
+  'เหมาะกับกล้วยที่เปลือกเปลี่ยนเป็นสีเหลืองเมื่อสุก เช่น กล้วยหอม': 'Works best with bananas whose peel turns yellow when ripe, such as Cavendish.',
+  'ระบบดูจากเปลือกเท่านั้น ตรวจเนื้อในหรือราไม่ได้ ถ้ามีรา กลิ่นเปรี้ยว หรือน้ำเยิ้ม ไม่ควรกิน': 'It only looks at the peel and can’t see the flesh or mould. If it has mould, smells sour or is leaking, don’t eat it.',
+  'AI ตัวนี้ทำงานยังไง': 'How does this AI work?',
+  'รับภาพ': 'Take the photo',
+  'ถ่ายจากกล้องหรืออัปโหลดรูปกล้วย': 'Shoot with the camera or upload a banana photo.',
+  'หากล้วยในภาพ': 'Find the bananas',
+  'โมเดล YOLOv8 ตีกรอบรอบกล้วยแต่ละหวีหรือแต่ละลูก': 'A YOLOv8 model draws a box around each hand or each banana.',
+  'ดูสีเปลือกในแต่ละกรอบ': 'Read the peel colour in each box',
+  'ตัดภาพตามกรอบ แล้วให้ 2 ตัวช่วยกันดู: CNN ดูลักษณะทั้งภาพ ส่วน HSV + Logistic Regression ดูสัดส่วนสีเขียว เหลือง และจุดน้ำตาล': 'The box is cropped and checked by two models: a CNN looks at the overall appearance, while HSV + Logistic Regression measures the share of green, yellow and brown spots.',
+  'รวมผลและตรวจซ้ำ': 'Combine and double-check',
+  'ถ่วงน้ำหนัก CNN 80% กับ HSV 20% แล้วใช้กฎสีเปลือกช่วยกันพลาด เช่น เปลือกเขียวชัดต้องเป็นดิบ': 'CNN counts for 80% and HSV for 20%, then peel-colour rules catch mistakes, e.g. a clearly green peel must be unripe.',
+  'บอกระดับความสุกและจำนวนวัน': 'Report ripeness and days left',
+  'ดิบ เริ่มสุก สุก เริ่มงอม หรืองอม พร้อมประมาณวันที่ยังกินได้ที่อุณหภูมิห้อง': 'Green, ripening, ripe, early overripe or overripe, plus an estimate of how many days it stays good at room temperature.',
+  'ทุกขั้นตอนทำงานในเบราว์เซอร์ของคุณ ภาพไม่ถูกส่งไปไหน': 'Everything runs in your browser. Your photos never leave your device.',
+  'สุกยัง? (SukYang) · Mini Project · AI for EE (67342EPE1)': 'SukYang · Mini Project · AI for EE (67342EPE1)',
+  'ปิด': 'Close',
+  'สุกยัง? คือเว็บที่ใช้ AI ดูสีเปลือกกล้วยแล้วบอกว่าสุกแค่ไหนและยังกินได้อีกกี่วัน ทำเป็นมินิโปรเจกต์วิชา AI for EE (67342EPE1)': 'SukYang is a web app that uses AI to read a banana’s peel colour and tell you how ripe it is and how many days it stays good. It is a mini project for the course AI for EE (67342EPE1).',
+  'ผู้จัดทำ': 'Created by',
+  'ณ': 'N', 'ย': 'Y',
+  'นายณภัทร สลักเพชร': 'Mr. Napat Salakphet',
+  'นายยศภัทร วิเชียร': 'Mr. Yosapat Wichian',
+  'ความแม่นยำ': 'Accuracy',
+  'ตัวจำแนกความสุก (CNN) ตอบถูก 337 จาก 348 ภาพในชุดตรวจสอบ ที่ผิดคือสลับกับระดับที่อยู่ติดกัน': 'The ripeness classifier (CNN) got 337 of 348 validation images right. The mistakes were mix-ups with the neighbouring stage.',
+  'วัดจากภาพชุดที่ใช้พัฒนา ภาพถ่ายจริงของคุณอาจต่างออกไปเล็กน้อย': 'Measured on the development image set. Your own photos may differ slightly.',
+  'ข้อจำกัดที่ควรรู้': 'Good to know',
+  'ดูจากเปลือกเท่านั้น ตรวจเนื้อในหรือราไม่ได้ ถ้ามีรา กลิ่นเปรี้ยว หรือน้ำเยิ้ม ไม่ควรกิน': 'It only looks at the peel and can’t check the flesh or mould. If it has mould, smells sour or is leaking, don’t eat it.',
+  'เรียนรู้จากกล้วยที่เปลือกเหลืองเมื่อสุก (เช่น กล้วยหอม) ส่วนกล้วยที่เปลือกสีแดงหรือสีอื่น เช่น กล้วยนาก ผลอาจคลาดเคลื่อน โดยเฉพาะอาจอ่านว่างอมทั้งที่ยังสุกดี': 'It learned from bananas that turn yellow when ripe (e.g. Cavendish). Red or other coloured varieties, such as red bananas, may give wrong results, and can even read as overripe when they are still fine.',
+  'กล้วยกองซ้อนกันเยอะหรือเป็นเครือบนต้น อาจตีกรอบได้ไม่ครบ': 'Big piles or bunches still on the tree may not all get a box.',
+  'จำนวนวันเป็นการประมาณจากสีเปลือกที่อุณหภูมิห้อง ไม่ใช่ค่าที่แน่นอน': 'Days left is an estimate from peel colour at room temperature, not an exact value.',
+  '"เริ่มงอม" มาจากกฎผสมผล ไม่ใช่คลาสที่ฝึกโดยตรง': '“Early overripe” comes from a combination rule, not a directly trained class.',
+  'เทคโนโลยี': 'Technology',
+  'YOLOv8 หากล้วย': 'YOLOv8 finds the bananas',
+  'CNN (YOLOv8n-cls) และ HSV + Logistic Regression ประเมินความสุก': 'CNN (YOLOv8n-cls) and HSV + Logistic Regression judge ripeness',
+  'Linear Regression ประมาณวันที่ยังกินได้': 'Linear Regression estimates the days left',
+  'onnxruntime-web ให้ AI ทำงานในเบราว์เซอร์': 'onnxruntime-web runs the AI in the browser',
+};
+const EN_TITLE = ['สุกยัง? (SukYang) — ถามกล้วยไม่ได้ ถาม AI แทน', 'SukYang — Not sure if it’s ripe? Ask the AI'];
+const _orig = new WeakMap();
+function applyStatic() {
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+  for (let n; (n = w.nextNode()); ) {
+    if (n.parentNode.closest && n.parentNode.closest('script,style')) continue;
+    let o = _orig.get(n);
+    if (o === undefined) { const t = n.data.trim(); if (!(t in EN)) { _orig.set(n, null); continue; } o = n.data; _orig.set(n, o); }
+    if (o === null) continue;
+    const t = o.trim(), lead = o.slice(0, o.indexOf(t)), trail = o.slice(o.indexOf(t) + t.length);
+    n.data = lang === 'en' ? lead + EN[t] + trail : o;
+  }
+  document.querySelectorAll('[aria-label],[title]').forEach(el => {
+    for (const a of ['aria-label', 'title']) if (el.hasAttribute(a)) {
+      const k = 'th' + a.replace('-', ''); if (el.dataset[k] === undefined) el.dataset[k] = el.getAttribute(a);
+      const th = el.dataset[k]; if (th in EN) el.setAttribute(a, lang === 'en' ? EN[th] : th);
+    }
+  });
+  document.title = lang === 'en' ? EN_TITLE[1] : EN_TITLE[0];
+  document.documentElement.lang = lang;
+}
+let lastShow = null, statusMsg = null, spMsgState = null, camOn = false;
+function renderDyn() {
+  const st = $('status'); if (st && statusMsg !== null) st.textContent = statusMsg ? T(...statusMsg) : '';
+  const sp = document.getElementById('spMsg'); if (sp && spMsgState) sp.textContent = T(...spMsgState);
+  if (typeof $ === 'function' && $('camBtn')) $('camBtn').textContent = camOn ? T('✖ ปิดกล้อง', '✖ Close camera') : T('📷 เปิดกล้อง', '📷 Open camera');
+  if ($('mapBtn')) $('mapBtn').textContent = showMap ? T('🖼️ กลับไปดูภาพปกติ', '🖼️ Back to normal view') : T('🎨 ดูแผนที่สีเปลือก', '🎨 Show peel colour map');
+  const tt = document.getElementById('spTipText'); if (tt && tipK !== null) tt.textContent = BANANA_TIPS[lang === 'en' ? 1 : 0][tipK];
+}
+function setLang(l) {
+  lang = l; try { localStorage.setItem('sukyang-lang', l); } catch (e) {}
+  applyStatic(); renderDyn();
+  if (lastDraw) draw(...lastDraw);
+  if (lastShow) showResults(...lastShow);
+}
 // ====== น้ำหนักโมเดลความสุก (จาก train_ripeness.py → web/ripeness_weights.json) ======
 const MODEL = {"classes": ["Green", "Semi-ripe", "Ripe", "Overripe"], "features": ["H_mean", "S_mean", "V_mean", "H_std", "S_std", "V_std", "dark_ratio", "brown_ratio", "green_ratio", "yellow_ratio", "dull_ratio", "hue_lt12", "hue_12_16", "hue_16_20", "hue_20_24", "hue_24_28", "hue_28_32", "hue_32_36", "hue_ge36", "spot_local"], "mean": [25.878855, 156.264476, 126.151524, 4.794578, 43.771186, 35.990857, 0.244827, 0.093436, 0.156309, 0.449624, 0.178596, 0.007126, 0.067373, 0.106379, 0.220257, 0.097544, 0.076933, 0.087816, 0.091746, 0.131894], "scale": [7.130468, 43.481746, 33.785887, 3.875328, 10.005705, 12.124387, 0.225503, 0.122999, 0.223782, 0.331429, 0.20535, 0.016985, 0.09868, 0.137937, 0.280503, 0.160296, 0.147918, 0.179235, 0.16535, 0.111143], "coef": [[0.736138, -0.064857, -1.902617, 0.235541, -0.34535, 0.164504, -0.849475, -1.421404, 0.638657, -0.850169, 1.109276, -0.499431, 0.832818, 0.99456, -0.986447, -0.692987, 0.596645, 0.153406, 1.528316, -0.131719], [-0.237806, 1.36971, -0.599599, 0.037797, -0.658745, -0.10495, 0.462413, 0.765576, 0.782526, 0.113637, -0.126774, 0.29616, -1.918353, -0.565379, -0.180041, 0.711035, 0.503308, 0.134119, -0.02405, -0.545912], [-0.746179, -1.200911, 1.531584, -0.194265, 1.195492, 0.572491, -0.781299, 0.20004, 0.575496, 1.312592, 1.006426, -0.058231, 0.161588, -0.482473, 0.303891, -0.134127, -0.312527, 1.627411, -0.492426, -0.621989], [0.247847, -0.103942, 0.970632, -0.079073, -0.191396, -0.632045, 1.16836, 0.455787, -1.996678, -0.57606, -1.988928, 0.261502, 0.923947, 0.053291, 0.862597, 0.116079, -0.787427, -1.914936, -1.01184, 1.29962]], "intercept": [1.414487, 0.414012, 0.860678, -2.689177]};
 // ====== โมเดลทำนายวัน (จาก train_days.py → web/days_weights.json) ======
@@ -329,11 +464,11 @@ const CONF = 0.2;
 const CAM_CROP = 0.8;                   // กล้อง: ใช้ 80% ตรงกลางของภาพ (สี่เหลี่ยมจัตุรัส)
 // ==============================================================================
 const LABELS = {
-  'Green':    {th:'ดิบ',      color:'#4f9a2f'},
-  'Semi-ripe':{th:'เริ่มสุก', color:'#a7b521'},
-  'Ripe':     {th:'สุก',      color:'#e0b000'},
-  'Early-over':{th:'เริ่มงอม', color:'#b07a10'},
-  'Overripe': {th:'งอม',      color:'#6b4a2b'},
+  'Green':    {th:'ดิบ',      en:'Green',          color:'#4f9a2f'},
+  'Semi-ripe':{th:'เริ่มสุก', en:'Ripening',       color:'#a7b521'},
+  'Ripe':     {th:'สุก',      en:'Ripe',           color:'#e0b000'},
+  'Early-over':{th:'เริ่มงอม', en:'Early overripe', color:'#b07a10'},
+  'Overripe': {th:'งอม',      en:'Overripe',       color:'#6b4a2b'},
 };
 // "เริ่มงอม" = ช่วงระหว่างสุกกับงอม: ผลรวมออกมาเป็น "สุก" แต่ CNN เห็นว่างอมเกินครึ่ง (เช่น มีจุดน้ำตาลเยอะ)
 function stageName(prob, cnn) {
@@ -474,29 +609,29 @@ const snapC = mk(1, 1), snapX = snapC.getContext('2d');
 const view = $('view'), vctx = view.getContext('2d');
 let session = null, stream = null, live = false, busy = false, lastResults = [];
 
-function setStatus(t, cls) { $('status').textContent = t; $('status').className = cls || ''; }
+function setStatus(t, cls) { statusMsg = t; $('status').textContent = t ? T(...t) : ''; $('status').className = cls || ''; }
 
 async function loadModel() {
   try {
     ort.env.wasm.numThreads = 1;
-    setStatus('⏳ กำลังโหลดโมเดล (ครั้งแรก ~50 MB อาจใช้เวลาสักครู่)…');
+    setStatus(['⏳ กำลังโหลดโมเดล (ครั้งแรก ~50 MB อาจใช้เวลาสักครู่)…', '⏳ Loading model (first time ~50 MB, may take a moment)…']);
     const loadCnn = ort.InferenceSession.create(CNN_FILE, {executionProviders: ['wasm']})
       .then(s => cnnSession = s).catch(e => console.warn('CNN load failed, ใช้ HSV อย่างเดียว', e));
     const bufs = await Promise.all(YOLO_PARTS.map(f => fetch(f).then(r => { if (!r.ok) throw new Error(f + ' ' + r.status); return r.arrayBuffer(); }).then(b => { splashStep(splash.real + 0.17); return b; })));
-    document.getElementById('spMsg').textContent = 'กำลังเตรียมความพร้อม…';
+    spMsgState = ['กำลังเตรียมความพร้อม…', 'Getting ready…']; renderDyn();
     const all = new Uint8Array(bufs.reduce((a, b) => a + b.byteLength, 0)); let off = 0;
     for (const b of bufs) { all.set(new Uint8Array(b), off); off += b.byteLength; }
     session = await ort.InferenceSession.create(all, {executionProviders: ['wasm']});
     splashStep(0.85);
     await loadCnn;
-    setStatus(cnnSession ? '' : '✅ โมเดลพร้อมใช้งาน (ไม่มี CNN — ใช้ HSV อย่างเดียว)', 'ok');
+    setStatus(cnnSession ? '' : ['✅ โมเดลพร้อมใช้งาน (ไม่มี CNN — ใช้ HSV อย่างเดียว)', '✅ Model ready (no CNN — using HSV only)'], 'ok');
   } catch (e) {
     console.error(e);
     try {                                         // มือถือบางเครื่องหน่วยความจำไม่พอสำหรับ YOLOv8s → ใช้ตัวเล็กแทน
       session = await loadLiveModel();
       if (!session) throw e;
-      setStatus('✅ โมเดลพร้อมใช้งาน (โหมดสำรอง: YOLO ตัวเล็ก — โหลดตัวหลักไม่สำเร็จ)', 'ok');
-    } catch (e2) { setStatus('⚠️ โหลดโมเดล YOLO ไม่สำเร็จ — จะหากล้วยจากสีแทน (' + e.message + ')', 'err'); }
+      setStatus(['✅ โมเดลพร้อมใช้งาน (โหมดสำรอง: YOLO ตัวเล็ก — โหลดตัวหลักไม่สำเร็จ)', '✅ Model ready (backup mode: small YOLO — main model failed to load)'], 'ok');
+    } catch (e2) { setStatus(['⚠️ โหลดโมเดล YOLO ไม่สำเร็จ — จะหากล้วยจากสีแทน (' + e.message + ')', '⚠️ YOLO failed to load — finding bananas by colour instead (' + e.message + ')'], 'err'); }
   }
   $('camBtn').disabled = false;
   finishSplash();
@@ -517,28 +652,36 @@ function finishSplash() {
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 600); }, wait + 250);
 }
 setTimeout(finishSplash, 90000);
-const BANANA_TIPS = [
+const BANANA_TIPS = [[
   'ไม่ควรแช่กล้วยดิบในตู้เย็น ความเย็นทำให้เปลือกคล้ำและสุกไม่สม่ำเสมอ ให้เก็บที่อุณหภูมิห้องจนสุกก่อน',
   'กล้วยปล่อยก๊าซเอทิลีนที่เร่งการสุก การห่อก้านเครือด้วยฟิล์มหรือกระดาษช่วยชะลอการสุกได้บ้าง',
   'อยากให้กล้วยดิบสุกเร็ว ใส่ถุงกระดาษรวมกับแอปเปิลหรือกล้วยสุก เพราะผลไม้สุกปล่อยเอทิลีนมาก',
   'จุดน้ำตาลบนเปลือกบอกว่าแป้งในเนื้อกำลังเปลี่ยนเป็นน้ำตาล ยิ่งจุดเยอะยิ่งหวาน แต่ก็ใกล้งอมแล้ว',
   'อากาศร้อนจัด (เกินราว 30 °C) เปลือกอาจยังเขียวทั้งที่เนื้อด้านในสุกแล้ว',
   'กล้วยงอมไม่ต้องทิ้ง เหมาะทำขนมกล้วย แพนเค้ก หรือสมูตตี้ เพราะหวานตามธรรมชาติ'
-];
+], [
+  'Don’t refrigerate green bananas. The cold darkens the peel and makes them ripen unevenly. Keep them at room temperature until ripe.',
+  'Bananas give off ethylene, which speeds up ripening. Wrapping the stem of a bunch in film or paper slows it down a little.',
+  'To ripen green bananas faster, put them in a paper bag with an apple or a ripe banana. Ripe fruit releases lots of ethylene.',
+  'Brown spots mean the starch is turning into sugar. More spots means sweeter, but also closer to overripe.',
+  'In very hot weather (above about 30 °C) the peel can stay green even though the flesh inside is already ripe.',
+  'Don’t throw out overripe bananas. They’re great for banana bread, pancakes or smoothies because they’re naturally sweet.'
+]];
+let tipK = null;
 function startTips() {
   if (splash.done) return;
   const box = document.getElementById('spTip'), txt = document.getElementById('spTipText'), dots = document.getElementById('spDots');
-  box.hidden = false; dots.innerHTML = BANANA_TIPS.map(() => '<i></i>').join('');
-  let k = Math.floor(Math.random() * BANANA_TIPS.length);
-  const show = () => { txt.textContent = BANANA_TIPS[k]; [...dots.children].forEach((d, i) => d.classList.toggle('on', i === k)); };
+  box.hidden = false; dots.innerHTML = BANANA_TIPS[0].map(() => '<i></i>').join('');
+  let k = Math.floor(Math.random() * BANANA_TIPS[0].length);
+  const show = () => { tipK = k; txt.textContent = BANANA_TIPS[lang === 'en' ? 1 : 0][k]; [...dots.children].forEach((d, i) => d.classList.toggle('on', i === k)); };
   show();
   splash.tipTimer = setInterval(() => {
     txt.classList.add('fade');
-    setTimeout(() => { k = (k + 1) % BANANA_TIPS.length; show(); txt.classList.remove('fade'); }, 400);
+    setTimeout(() => { k = (k + 1) % BANANA_TIPS[0].length; show(); txt.classList.remove('fade'); }, 400);
   }, 6000);
 }
-setTimeout(() => { if (!splash.done) document.getElementById('spMsg').textContent = 'ใช้เวลาไม่นาน โปรดรอสักครู่…'; }, 5000);
-setTimeout(() => { if (!splash.done) { document.getElementById('spMsg').textContent = 'โหลดครั้งแรกอาจนานหน่อย ระหว่างรอลองอ่านความรู้เรื่องกล้วยไปก่อน'; startTips(); } }, 14000);
+setTimeout(() => { if (!splash.done) spMsgState = ['ใช้เวลาไม่นาน โปรดรอสักครู่…', 'This won’t take long, please wait…']; renderDyn(); }, 5000);
+setTimeout(() => { if (!splash.done) { spMsgState = ['โหลดครั้งแรกอาจนานหน่อย ระหว่างรอลองอ่านความรู้เรื่องกล้วยไปก่อน', 'First load can take a while. Here are some banana tips in the meantime.']; renderDyn(); startTips(); } }, 14000);
           // กันค้าง: ถ้าโหลดนานเกิน 15 วินาทีก็เปิดหน้าเว็บให้ใช้
 (() => {
   const d = document.getElementById('about');
@@ -647,16 +790,16 @@ function daysText(r) {
     // ประมาณวันที่จะสุก: ดัชนีความสุก e (0=ดิบสนิท, 1=เริ่มสุก, 2=สุก) แล้วประมาณเชิงเส้นเป็นช่วง ดิบสนิท ~6 วัน → เริ่มสุก ~2 วัน → สุก 0 วัน (กล้วยที่อุณหภูมิห้อง)
     const p = r.prob, e = Math.min(2, p[1] + 2 * (p[2] + p[3]));
     const d = e <= 1 ? 6 - 4 * e : 2 * (2 - e), lo = Math.max(0, Math.round(d - 1)), hi = Math.round(d + 1);
-    if (d < 1) return {short: '<1 วัน', long: '⏳ ใกล้สุกแล้ว คาดว่าสุกภายใน 1 วัน (ที่อุณหภูมิห้อง)'};
-    return {short: `สุกใน ~${Math.round(d)} วัน`, long: `⏳ ยังไม่สุก คาดว่าจะสุกในอีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง ประมาณการจากสีเปลือก)`};
+    if (d < 1) return {short: T('<1 วัน', '<1 day'), long: T('⏳ ใกล้สุกแล้ว คาดว่าสุกภายใน 1 วัน (ที่อุณหภูมิห้อง)', '⏳ Almost ripe, expected within 1 day (at room temperature)')};
+    return {short: T(`สุกใน ~${Math.round(d)} วัน`, `ripe in ~${Math.round(d)} d`), long: T(`⏳ ยังไม่สุก คาดว่าจะสุกในอีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง ประมาณการจากสีเปลือก)`, `⏳ Not ripe yet, expected to ripen in about ${lo}–${hi} days (room temperature, estimated from peel colour)`)};
   }
-  if (r.name === 'Early-over') return {short: 'กินเร็วๆ นี้',
-    long: '🍌 เริ่มงอม มีจุดน้ำตาลแล้ว หวานจัด ควรกินภายใน 1–2 วัน หรือเก็บแช่เย็นชะลอ จากนั้นเหมาะทำขนม/สมูตตี้'};
-  if (r.name === 'Overripe') return {short: 'ทำขนม',
-    long: '🍰 เหมาะทำขนม/สมูตตี้ — เปลือกดำไม่ได้แปลว่าเสีย ให้เช็กเนื้อใน กลิ่น และรา ก่อนกิน'};
+  if (r.name === 'Early-over') return {short: T('กินเร็วๆ นี้', 'eat soon'),
+    long: T('🍌 เริ่มงอม มีจุดน้ำตาลแล้ว หวานจัด ควรกินภายใน 1–2 วัน หรือเก็บแช่เย็นชะลอ จากนั้นเหมาะทำขนม/สมูตตี้', '🍌 Getting overripe with brown spots and very sweet. Eat within 1–2 days or refrigerate to slow it down, then use for baking or smoothies.')};
+  if (r.name === 'Overripe') return {short: T('ทำขนม', 'bake it'),
+    long: T('🍰 เหมาะทำขนม/สมูตตี้ — เปลือกดำไม่ได้แปลว่าเสีย ให้เช็กเนื้อใน กลิ่น และรา ก่อนกิน', '🍰 Good for baking or smoothies. A dark peel doesn’t mean it’s spoiled, but check the flesh, smell and mould before eating.')};
   const d = r.days, lo = Math.max(0, Math.floor(d - DAYS.mae)), hi = Math.min(DAYS.max_day, Math.ceil(d + DAYS.mae));
-  if (hi <= 1) return {short: '≤1 วัน', long: '🗓️ ควรกินสดภายในวันนี้–พรุ่งนี้ จากนั้นเหมาะทำขนม/สมูตตี้'};
-  return {short: `~${Math.round(d)} วัน`, long: `🗓️ ยังกินสดอร่อยอีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง)`};
+  if (hi <= 1) return {short: T('≤1 วัน', '≤1 day'), long: T('🗓️ ควรกินสดภายในวันนี้–พรุ่งนี้ จากนั้นเหมาะทำขนม/สมูตตี้', '🗓️ Best eaten fresh today or tomorrow, then good for baking or smoothies.')};
+  return {short: T(`~${Math.round(d)} วัน`, `~${Math.round(d)} d`), long: T(`🗓️ ยังกินสดอร่อยอีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง)`, `🗓️ Still good to eat fresh for about ${lo}–${hi} days (room temperature)`)};
 }
 
 
@@ -811,8 +954,8 @@ function draw(res, fallback, base = frame) {
     const L = LABELS[r.name], ds = daysText(r).short;
     // ป้ายชื่อยาวเกินที่ว่าง (กล้วยวางชิดกันหลายลูก) → ย่อเหลือ "#1 ดิบ" หรือ "#1" ไม่ให้ทับป้ายลูกถัดไป
     const room = res.slice(i + 1).reduce((m, q) => (q.x1 > r.x1 && Math.abs(q.y1 - r.y1) < fs * 2) ? Math.min(m, q.x1 - r.x1) : m, frame.width - r.x1);
-    let txt = `#${i+1} ${L.th} ${(Math.max(...r.prob)*100).toFixed(0)}%${ds ? ' · ' + ds : ''}`;
-    for (const t of [`#${i+1} ${L.th} ${(Math.max(...r.prob)*100).toFixed(0)}%`, `#${i+1} ${L.th}`, `#${i+1}`]) if (vctx.measureText(txt).width + 12 > room) txt = t;
+    let txt = `#${i+1} ${L[lang]} ${(Math.max(...r.prob)*100).toFixed(0)}%${ds ? ' · ' + ds : ''}`;
+    for (const t of [`#${i+1} ${L[lang]} ${(Math.max(...r.prob)*100).toFixed(0)}%`, `#${i+1} ${L[lang]}`, `#${i+1}`]) if (vctx.measureText(txt).width + 12 > room) txt = t;
     vctx.strokeStyle = L.color; vctx.lineWidth = lw; vctx.strokeRect(r.x1, r.y1, r.x2 - r.x1, r.y2 - r.y1);
     const tw = vctx.measureText(txt).width + 12, ty = Math.max(0, r.y1 - fs - 8);
     vctx.fillStyle = L.color; vctx.fillRect(r.x1 - lw/2, ty, tw, fs + 8);
@@ -828,29 +971,30 @@ function ripeT(r) {
   return Math.min(0.97, Math.max(0.03, t));
 }
 function showResults(res, fallback) {
+  lastShow = [res, fallback];
   $('result').style.display = 'block';
   if (!live) setStep(2);
   const counts = {};
   res.forEach(r => counts[r.name] = (counts[r.name] || 0) + 1);
-  $('summary').innerHTML = (fallback ? '' : `<span class="chip" style="--c:#1d241e">พบกล้วย ${res.length} จุด</span>`) +
-    Object.entries(counts).map(([n, c]) => `<span class="chip" style="--c:${LABELS[n].color}">${LABELS[n].th} ${c}</span>`).join('');
+  $('summary').innerHTML = (fallback ? '' : `<span class="chip" style="--c:#1d241e">${T(`พบกล้วย ${res.length} จุด`, `${res.length} banana${res.length > 1 ? 's' : ''} found`)}</span>`) +
+    Object.entries(counts).map(([n, c]) => `<span class="chip" style="--c:${LABELS[n].color}">${LABELS[n][lang]} ${c}</span>`).join('');
   $('items').innerHTML = res.map((r, i) => {
     const L = LABELS[r.name];
-    return `<div class="item"><h3>${fallback ? 'ทั้งภาพ' : 'กล้วย #' + (i+1)} · ${(Math.max(...r.prob)*100).toFixed(1)}% <span style="display:none">(${r.name})</span><b style="color:${r.name === 'Green' ? '#3e8e41' : 'var(--ink)'}">${L.th}</b></h3>` +
+    return `<div class="item"><h3>${fallback ? T('ทั้งภาพ', 'Whole image') : T('กล้วย #', 'Banana #') + (i+1)} · ${(Math.max(...r.prob)*100).toFixed(1)}% <span style="display:none">(${r.name})</span><b style="color:${r.name === 'Green' ? '#3e8e41' : 'var(--ink)'}">${L[lang]}</b></h3>` +
       `<div class="days">${daysText(r).long}</div>` +
-      `<div class="ruler"><div class="strip"></div><i class="pin" data-t="${(ripeT(r)*100).toFixed(1)}"></i><div class="ticks"><span>ดิบ</span><span>เริ่มสุก</span><span>สุก</span><span>งอม</span></div></div>` +
-      `<details class="more"><summary>ดูรายละเอียด</summary>` +
-      MODEL.classes.map((c, j) => `<div class="bar"><span>${LABELS[c].th}</span><div class="track"><div class="fill" style="width:${(r.prob[j]*100).toFixed(1)}%;background:${LABELS[c].color}"></div></div><span>${(r.prob[j]*100).toFixed(1)}%</span></div>`).join('') +
+      `<div class="ruler"><div class="strip"></div><i class="pin" data-t="${(ripeT(r)*100).toFixed(1)}"></i><div class="ticks"><span>${LABELS.Green[lang]}</span><span>${LABELS["Semi-ripe"][lang]}</span><span>${LABELS.Ripe[lang]}</span><span>${LABELS.Overripe[lang]}</span></div></div>` +
+      `<details class="more"><summary>${T('ดูรายละเอียด', 'Details')}</summary>` +
+      MODEL.classes.map((c, j) => `<div class="bar"><span>${LABELS[c][lang]}</span><div class="track"><div class="fill" style="width:${(r.prob[j]*100).toFixed(1)}%;background:${LABELS[c].color}"></div></div><span>${(r.prob[j]*100).toFixed(1)}%</span></div>`).join('') +
       (r.cmap ? `<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin:8px 0 2px"><div style="width:${r.cmap.green*100}%;background:#3caa28"></div><div style="width:${r.cmap.yellow*100}%;background:#ffc800"></div><div style="width:${r.cmap.brown*100}%;background:#6e3c19"></div></div>` +
-        `<div class="sub" style="font-size:13px">🎨 สีเปลือก: เขียว ${(r.cmap.green*100).toFixed(0)}% · เหลือง ${(r.cmap.yellow*100).toFixed(0)}% · น้ำตาล/จุดดำ ${(r.cmap.brown*100).toFixed(0)}%</div>` : '') +
-      (r.cnn ? `<div class="sub" style="font-size:13px">🧠 CNN: ${LABELS[MODEL.classes[r.cnn.indexOf(Math.max(...r.cnn))]].th} ${(Math.max(...r.cnn)*100).toFixed(0)}% · 🎨 HSV: ${LABELS[MODEL.classes[r.hsv.indexOf(Math.max(...r.hsv))]].th} ${(Math.max(...r.hsv)*100).toFixed(0)}%</div>` : '') +
-      (r.adjusted ? `<div class="sub" style="font-size:13px">${r.adjusted.why === 'green' ? `🟢 เปลือกยังเป็นสีเขียว ${(r.adjusted.green*100).toFixed(0)}%` : r.adjusted.why === 'mixed' ? `🟡🟢 มีทั้งลูกเหลืองและลูกเขียว (เขียว ${(r.adjusted.green*100).toFixed(0)}%)` : '🔍 สีเปลือกไม่มีจุดดำ/น้ำตาลมากพอจะเป็นงอม'} จึงปรับผล (ผลผสมเดิม ${LABELS[r.adjusted.from].th} ${(r.adjusted.fromP*100).toFixed(0)}%)</div>` : '') +
-      (fallback ? '' : `<div class="sub" style="font-size:13px">${r.blob ? 'YOLO ไม่เห็นกล้วย (อาจอยู่ในแพ็กเกจ) จึงหาจากบริเวณสีกล้วยแทน' : r.extra ? 'YOLO มองข้ามลูกนี้ (อาจโดนฉลากบังหรือวางชิดลูกอื่น) จึงหาเพิ่มจากบริเวณสีกล้วย' : 'YOLO มั่นใจว่าเป็นกล้วย ' + (r.score*100).toFixed(0) + '%'}</div>`) + '</details></div>';
+        `<div class="sub" style="font-size:13px">${T(`🎨 สีเปลือก: เขียว ${(r.cmap.green*100).toFixed(0)}% · เหลือง ${(r.cmap.yellow*100).toFixed(0)}% · น้ำตาล/จุดดำ ${(r.cmap.brown*100).toFixed(0)}%`, `🎨 Peel colour: green ${(r.cmap.green*100).toFixed(0)}% · yellow ${(r.cmap.yellow*100).toFixed(0)}% · brown/dark spots ${(r.cmap.brown*100).toFixed(0)}%`)}</div>` : '') +
+      (r.cnn ? `<div class="sub" style="font-size:13px">🧠 CNN: ${LABELS[MODEL.classes[r.cnn.indexOf(Math.max(...r.cnn))]][lang]} ${(Math.max(...r.cnn)*100).toFixed(0)}% · 🎨 HSV: ${LABELS[MODEL.classes[r.hsv.indexOf(Math.max(...r.hsv))]][lang]} ${(Math.max(...r.hsv)*100).toFixed(0)}%</div>` : '') +
+      (r.adjusted ? `<div class="sub" style="font-size:13px">${r.adjusted.why === 'green' ? T(`🟢 เปลือกยังเป็นสีเขียว ${(r.adjusted.green*100).toFixed(0)}%`, `🟢 Peel is still ${(r.adjusted.green*100).toFixed(0)}% green`) : r.adjusted.why === 'mixed' ? T(`🟡🟢 มีทั้งลูกเหลืองและลูกเขียว (เขียว ${(r.adjusted.green*100).toFixed(0)}%)`, `🟡🟢 Mix of yellow and green bananas (${(r.adjusted.green*100).toFixed(0)}% green)`) : T('🔍 สีเปลือกไม่มีจุดดำ/น้ำตาลมากพอจะเป็นงอม', '🔍 Not enough dark/brown spots on the peel to be overripe')}${T(' จึงปรับผล', ', so the result was adjusted')} (${T('ผลผสมเดิม', 'original blend:')} ${LABELS[r.adjusted.from][lang]} ${(r.adjusted.fromP*100).toFixed(0)}%)</div>` : '') +
+      (fallback ? '' : `<div class="sub" style="font-size:13px">${r.blob ? T('YOLO ไม่เห็นกล้วย (อาจอยู่ในแพ็กเกจ) จึงหาจากบริเวณสีกล้วยแทน', 'YOLO didn’t see a banana (maybe in packaging), so it was found from banana-coloured areas') : r.extra ? T('YOLO มองข้ามลูกนี้ (อาจโดนฉลากบังหรือวางชิดลูกอื่น) จึงหาเพิ่มจากบริเวณสีกล้วย', 'YOLO missed this one (maybe a label covers it or it touches another), so it was added from banana-coloured areas') : T('YOLO มั่นใจว่าเป็นกล้วย ', 'YOLO is ') + (r.score*100).toFixed(0) + T('%', '% sure it’s a banana')}</div>`) + '</details></div>';
   }).join('');
   requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll('#items .pin').forEach(p => p.style.left = p.dataset.t + '%')));
   const w = $('warn'), msgs = [];
-  if (fallback) msgs.push(session ? '⚠️ YOLO ไม่พบกล้วยในภาพ จึงวิเคราะห์สีทั้งภาพแทน ผลอาจคลาดเคลื่อน' : '⚠️ ไม่ได้ใช้ YOLO จึงวิเคราะห์สีทั้งภาพ');
-  if (res.some(r => Math.max(...r.prob) < 0.55)) msgs.push('🤔 บางจุดผลก้ำกึ่งระหว่างสองระดับ ลองถ่ายใหม่ในแสงที่สว่างขึ้น');
+  if (fallback) msgs.push(session ? T('⚠️ YOLO ไม่พบกล้วยในภาพ จึงวิเคราะห์สีทั้งภาพแทน ผลอาจคลาดเคลื่อน', '⚠️ YOLO found no banana, so the whole image was analysed by colour. Results may be off.') : T('⚠️ ไม่ได้ใช้ YOLO จึงวิเคราะห์สีทั้งภาพ', '⚠️ YOLO not used, so the whole image was analysed by colour.'));
+  if (res.some(r => Math.max(...r.prob) < 0.55)) msgs.push(T('🤔 บางจุดผลก้ำกึ่งระหว่างสองระดับ ลองถ่ายใหม่ในแสงที่สว่างขึ้น', '🤔 Some results sit between two stages. Try again in brighter light.'));
   w.style.display = msgs.length ? 'block' : 'none'; w.innerHTML = msgs.join('<br>');
 }
 
@@ -919,7 +1063,7 @@ function stopCam() {
   tracks = [];
   live = false;
   if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
-  $('shoot').style.display = 'none'; $('camBtn').textContent = '📷 เปิดกล้อง';
+  $('shoot').style.display = 'none'; camOn = false; renderDyn();
 }
 
 $('camBtn').onclick = async () => {
@@ -927,11 +1071,11 @@ $('camBtn').onclick = async () => {
   try {
     stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment', width:{ideal:1280}}, audio:false});
     $('video').srcObject = stream; await $('video').play();
-    $('view').style.display = 'block'; $('shoot').style.display = 'block'; $('camBtn').textContent = '✖ ปิดกล้อง';
+    $('view').style.display = 'block'; $('shoot').style.display = 'block'; camOn = true; renderDyn();
     lastResults = []; live = true; renderLoop(); setStep(1);
-    setStatus('⏳ กำลังเตรียมโหมดกล้องสด…'); await loadLiveModel(); setStatus('✅ โหมดกล้องสด — กด "หยุดภาพและดูผล" เพื่อวิเคราะห์ละเอียด', 'ok');
+    setStatus(['⏳ กำลังเตรียมโหมดกล้องสด…', '⏳ Preparing live camera…']); await loadLiveModel(); setStatus(['✅ โหมดกล้องสด — กด "หยุดภาพและดูผล" เพื่อวิเคราะห์ละเอียด', '✅ Live mode. Tap “Freeze & see result” for a detailed analysis.'], 'ok');
     analyzeLoop();
-  } catch (e) { setStep(0); alert('เปิดกล้องไม่ได้: ' + e.message + '\nลองกด "อัปโหลดรูป" แทน'); }
+  } catch (e) { setStep(0); alert(T('เปิดกล้องไม่ได้: ', 'Can’t open the camera: ') + e.message + T('\nลองกด "อัปโหลดรูป" แทน', '\nTry “Upload photo” instead')); }
 };
 $('shoot').onclick = async () => {               // หยุดภาพ แล้ววิเคราะห์ใหม่ด้วย YOLOv8s ตัวหลัก (แม่นกว่า)
   const v = $('video');
@@ -939,8 +1083,8 @@ $('shoot').onclick = async () => {               // หยุดภาพ แล
   stopCam(); busy = false; setStep(1);
   if (liveTask) await liveTask.catch(() => {});                                       // รอให้การวิเคราะห์สดที่ค้างอยู่จบก่อน
   frame.width = snapC.width; frame.height = snapC.height; fctx.drawImage(snapC, 0, 0);
-  if (modelReady) { setStatus('⏳ รอโมเดลโหลดให้เสร็จก่อน…'); await modelReady; }
-  setStatus('🔍 กำลังวิเคราะห์ละเอียด…');
+  if (modelReady) { setStatus(['⏳ รอโมเดลโหลดให้เสร็จก่อน…', '⏳ Waiting for the model to finish loading…']); await modelReady; }
+  setStatus(['🔍 กำลังวิเคราะห์ละเอียด…', '🔍 Running a detailed analysis…']);
   const {res, fallback} = await analyze();
   draw(res, fallback); showResults(res, fallback);
   setStatus('');
@@ -953,20 +1097,22 @@ $('file').onchange = e => {
   const im = new Image();
   im.onload = async () => {
     await waitLive;
-    if (modelReady) { setStatus('⏳ รอโมเดลโหลดให้เสร็จก่อน…'); await modelReady; }
+    if (modelReady) { setStatus(['⏳ รอโมเดลโหลดให้เสร็จก่อน…', '⏳ Waiting for the model to finish loading…']); await modelReady; }
     loadFrame(im, im.naturalWidth, im.naturalHeight); URL.revokeObjectURL(im.src);
-    setStatus('🔍 กำลังวิเคราะห์…');
+    setStatus(['🔍 กำลังวิเคราะห์…', '🔍 Analysing…']);
     const {res, fallback} = await analyze();
     $('view').style.display = 'block'; draw(res, fallback); showResults(res, fallback);
-    setStatus(session ? '' : '⚠️ ไม่ได้ใช้ YOLO', session ? 'ok' : 'err');
+    setStatus(session ? '' : ['⚠️ ไม่ได้ใช้ YOLO', '⚠️ YOLO not used'], session ? 'ok' : 'err');
     $('view').scrollIntoView({behavior:'smooth', block:'start'});
   };
   im.src = URL.createObjectURL(f); e.target.value = '';
 };
 modelReady = loadModel();
+$('langBtn').onclick = () => setLang(lang === 'en' ? 'th' : 'en');
+if (lang === 'en') setLang('en'); else document.documentElement.lang = 'th';
 $('mapBtn').onclick = () => {
   showMap = !showMap;
-  $('mapBtn').textContent = showMap ? '🖼️ กลับไปดูภาพปกติ' : '🎨 ดูแผนที่สีเปลือก';
+  renderDyn();
   $('mapLegend').style.display = showMap ? 'block' : 'none';
   if (lastDraw) draw(...lastDraw);
 };
