@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>สุกยัง? (SukYang) — ถามกล้วยไม่ได้ ถาม AI แทน</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600&family=Mitr:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Mitr:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
 <style>
   :root{--ink:#1d241e;--muted:#62705f;--paper:#f2f5ec;--card:#fff;--line:#dde3d3;--banana:#ffd23f;--leaf:#3e8e41;--spot:#5b3a29;--r:22px}
@@ -306,6 +306,14 @@
   .maker i{border-radius:6px}
   .sp-tip{border-radius:6px;background:rgba(255,255,255,.6);border:1.5px solid var(--ink)}
   @media (min-width:700px){.app{border-radius:10px}}
+  /* ===== ฟอนต์: Mitr เฉพาะชื่อ/หัวข้อใหญ่ ที่เหลือใช้ Noto Sans Thai ===== */
+  .days,.chip,button,.filebtn,summary,.item h3,#empty b,.steps li::before,.sp-tip b,.maker i,.sp-en,.langBtn,.ab-body h3,.stat b,.rt{font-family:"Noto Sans Thai",system-ui,sans-serif}
+  .btns button,.btns .filebtn,#shoot,#mapBtn{font-weight:600;font-size:16px}
+  details.fold>summary{font-weight:600;font-size:16px}
+  #empty b{font-weight:600}
+  .chip{font-weight:600}
+  .hero .tag{max-width:none;font-size:13px}
+  .hero .tag span{white-space:nowrap}
 </style>
 </head>
 <body>
@@ -325,7 +333,7 @@
   <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#1d241e"/><g transform="translate(33 33) scale(1.05) rotate(-18) translate(-32 -32)"><path d="M8 21 C12 47 45 55 57 22 C58 20 55 19 54 21 C44 41 21 38 14 18 C13 16 9 18 8 21 Z" fill="#ffd23f" stroke="#ffd23f" stroke-width="2.5" stroke-linejoin="round"/><rect x="9" y="12" width="6" height="8" rx="2.5" transform="rotate(-8 12 16)" fill="#ffd23f"/></g></svg>
   <div class="brand">
     <h1>สุกยัง?</h1>
-    <p class="tag">SukYang · ถามกล้วยไม่ได้ ถาม AI แทน</p>
+    <p class="tag"><span>ถามกล้วยไม่ได้</span> <span>ถาม AI แทน</span></p>
   </div>
   <button class="langBtn" id="langBtn" type="button" aria-label="Language / ภาษา"><span data-l="th">TH</span><span data-l="en">EN</span></button>
   <button class="aboutBtn" id="aboutBtn" type="button" aria-label="เกี่ยวกับโปรเจกต์" title="เกี่ยวกับโปรเจกต์"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r=".6" fill="currentColor"/></svg></button>
@@ -425,7 +433,7 @@ const EN = {
   'กำลังเตรียมความพร้อม…': 'Getting ready…',
   'ความรู้เรื่องกล้วย': 'Banana tips',
   'สุกยัง?': 'SukYang?',
-  'SukYang · ถามกล้วยไม่ได้ ถาม AI แทน': 'Not sure if it’s ripe? Ask the AI.',
+  'ถามกล้วยไม่ได้': 'Not sure if it’s ripe?', 'ถาม AI แทน': 'Ask the AI.',
   'เกี่ยวกับโปรเจกต์': 'About the project',
   'ถ่ายรูปกล้วย': 'Snap a banana,',
   'แล้วดูว่าสุกยัง': 'see if it’s ripe',
