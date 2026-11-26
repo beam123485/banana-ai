@@ -9,14 +9,14 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>สุกยัง? (SukYang) — ถามกล้วยไม่ได้ ถาม AI แทน</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600&family=Prompt:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;600&family=Mitr:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
 <style>
   :root{--ink:#1d241e;--muted:#62705f;--paper:#f2f5ec;--card:#fff;--line:#dde3d3;--banana:#ffd23f;--leaf:#3e8e41;--spot:#5b3a29;--r:22px}
   *{box-sizing:border-box}
   html{-webkit-text-size-adjust:100%}
   body{margin:0;font-family:"Noto Sans Thai",system-ui,sans-serif;background:var(--paper);color:var(--ink);line-height:1.6}
-  h1,h2,h3,.days,.chip,button,.filebtn,summary{font-family:"Prompt","Noto Sans Thai",system-ui,sans-serif}
+  h1,h2,h3,.days,.chip,button,.filebtn,summary{font-family:"Mitr","Noto Sans Thai",system-ui,sans-serif}
   header{padding:26px 20px 6px;max-width:640px;margin:auto;display:flex;gap:14px;align-items:center}
   .logo{width:52px;height:52px;flex:none;border-radius:15px}
   h1{margin:0;font-size:clamp(28px,7vw,36px);line-height:1.1;letter-spacing:-.5px;font-weight:700}
@@ -41,7 +41,7 @@
   #empty::before,#empty::after{content:"";position:absolute;width:34px;height:34px;border:4px solid var(--ink);opacity:.85}
   #empty::before{left:16px;top:16px;border-right:0;border-bottom:0;border-radius:10px 0 0 0}
   #empty::after{right:16px;bottom:16px;border-left:0;border-top:0;border-radius:0 0 10px 0}
-  #empty b{display:block;color:var(--ink);font-family:"Prompt",sans-serif;font-size:18px;font-weight:600}
+  #empty b{display:block;color:var(--ink);font-family:"Mitr",sans-serif;font-size:18px;font-weight:600}
   #shoot{margin-top:10px;width:100%;display:none}
   #mapBtn{background:#eef2e6}
   #video{display:none}
@@ -84,8 +84,8 @@
   .sp-box{display:flex;flex-direction:column;align-items:center;text-align:center;padding:24px}
   .sp-logo{width:96px;height:96px;border-radius:28px;box-shadow:0 18px 40px -16px rgba(29,36,30,.55);animation:pop .7s cubic-bezier(.2,1.3,.4,1) both}
   .sway{transform-box:fill-box;transform-origin:50% 60%;animation:sway 1.8s ease-in-out .6s infinite}
-  .sp-name{font-family:"Prompt",sans-serif;font-weight:700;font-size:44px;line-height:1.1;margin:22px 0 0;letter-spacing:-.5px;animation:rise .6s .25s ease both}
-  .sp-en{font-family:"Prompt",sans-serif;font-weight:500;font-size:14px;letter-spacing:2px;opacity:.65;margin-top:2px;animation:rise .6s .35s ease both}
+  .sp-name{font-family:"Mitr",sans-serif;font-weight:700;font-size:44px;line-height:1.1;margin:22px 0 0;letter-spacing:-.5px;animation:rise .6s .25s ease both}
+  .sp-en{font-family:"Mitr",sans-serif;font-weight:500;font-size:14px;letter-spacing:2px;opacity:.65;margin-top:2px;animation:rise .6s .35s ease both}
   .sp-bar{width:min(220px,60vw);height:8px;border-radius:99px;background:rgba(29,36,30,.16);margin-top:34px;overflow:hidden;animation:rise .6s .45s ease both}
   .sp-bar i{display:block;height:100%;width:100%;border-radius:99px;background:var(--ink);transform-origin:left;transform:scaleX(.04);transition:transform .5s cubic-bezier(.3,.7,.2,1)}
   .sp-msg{font-size:14px;margin-top:12px;opacity:.75;animation:rise .6s .55s ease both}
@@ -106,16 +106,16 @@
   .ab-body p,.ab-body li{font-size:15px;margin:6px 0}
   .ab-body ul{padding-left:20px;margin:6px 0}
   .stat{display:flex;gap:14px;align-items:baseline;padding:12px 14px;border-radius:16px;background:#f2f5ec;margin:8px 0}
-  .stat b{font-family:"Prompt",sans-serif;font-size:30px;line-height:1;white-space:nowrap}
+  .stat b{font-family:"Mitr",sans-serif;font-size:30px;line-height:1;white-space:nowrap}
   .stat span{font-size:14px;color:var(--muted)}
   /* ---- ขั้นตอนการทำงาน ---- */
   .steps{list-style:none;margin:6px 0 0;padding:0;counter-reset:s}
   .steps li{position:relative;padding:0 0 18px 48px;counter-increment:s}
   .steps li:last-child{padding-bottom:4px}
-  .steps li::before{content:counter(s);position:absolute;left:0;top:0;width:32px;height:32px;border-radius:50%;background:var(--banana);display:grid;place-items:center;font-family:"Prompt",sans-serif;font-weight:700;font-size:15px}
+  .steps li::before{content:counter(s);position:absolute;left:0;top:0;width:32px;height:32px;border-radius:50%;background:var(--banana);display:grid;place-items:center;font-family:"Mitr",sans-serif;font-weight:700;font-size:15px}
   .steps li::after{content:"";position:absolute;left:15px;top:36px;bottom:4px;width:2px;background:var(--line)}
   .steps li:last-child::after{display:none}
-  .steps b{display:block;font-family:"Prompt",sans-serif;font-size:16px;font-weight:600}
+  .steps b{display:block;font-family:"Mitr",sans-serif;font-size:16px;font-weight:600}
   .steps span{font-size:14px;color:var(--muted)}
   @media (prefers-reduced-motion:reduce){.sway,.sp-logo,.sp-name,.sp-en,.sp-bar,.sp-msg,dialog#about[open]{animation:none}.sp-bar i{transition:none}#splash{transition:none}}
   /* ===== สกินใหม่: หัวเข้ม + แผ่นขาวมนซ้อนขึ้นมา ===== */
@@ -126,7 +126,7 @@
   .hero h1{color:#fff}
   .hero .tag,.hero h1 .en{color:rgba(255,255,255,.65)}
   .hero .aboutBtn{background:rgba(255,255,255,.14);color:#fff}
-  .hero-t{font-family:"Prompt",sans-serif;font-weight:700;font-size:clamp(30px,8.4vw,40px);line-height:1.2;margin:18px 0 8px;letter-spacing:-.4px}
+  .hero-t{font-family:"Mitr",sans-serif;font-weight:700;font-size:clamp(30px,8.4vw,40px);line-height:1.2;margin:18px 0 8px;letter-spacing:-.4px}
   .hero-s{margin:0;color:rgba(255,255,255,.72);font-size:15px;max-width:30em}
   .route{display:flex;align-items:flex-start;margin-top:24px;padding:14px 16px;border-radius:22px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1)}
   .rt{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;font-size:12px;color:rgba(255,255,255,.75)}
@@ -152,7 +152,7 @@
   /* ===== หน้าโหลด: ข้อความรอนาน + ความรู้เรื่องกล้วย ===== */
   .sp-tip{margin-top:26px;width:min(320px,86vw);padding:14px 18px 12px;border-radius:22px;background:rgba(255,255,255,.55);text-align:left;animation:rise .5s ease both}
   .sp-tip[hidden]{display:none}
-  .sp-tip b{font-family:"Prompt",sans-serif;font-size:14px}
+  .sp-tip b{font-family:"Mitr",sans-serif;font-size:14px}
   .sp-tip p{margin:6px 0 0;font-size:14px;line-height:1.55;min-height:66px;transition:opacity .4s ease}
   .sp-tip p.fade{opacity:0}
   .sp-dots{display:flex;gap:5px;margin-top:8px}
@@ -185,7 +185,7 @@
   details.fold>summary{font-size:17px}
   .tips li{font-size:16px}
   .maker{display:flex;align-items:center;gap:12px;margin:8px 0;font-size:16px}
-  .maker i{font-style:normal;width:38px;height:38px;border-radius:50%;background:var(--banana);display:grid;place-items:center;font-family:"Prompt",sans-serif;font-weight:700}
+  .maker i{font-style:normal;width:38px;height:38px;border-radius:50%;background:var(--banana);display:grid;place-items:center;font-family:"Mitr",sans-serif;font-weight:700}
   /* ===== แถบขั้นตอนแบบมินิมอล: จุดกลมเดินเมื่อกำลังประมวลผล ===== */
   #route{background:none;border:0;padding:0;margin-top:26px;align-items:flex-start}
   #route .rt{gap:8px;font-size:13px;color:rgba(255,255,255,.6);transition:color .3s}
@@ -214,7 +214,7 @@
   .hero .aboutBtn,.hero .langBtn{background:transparent;color:var(--ink);border:1.5px solid rgba(29,36,30,.28);transition:background .2s,border-color .2s}
   .hero .aboutBtn:hover,.hero .langBtn:hover{background:rgba(29,36,30,.08);border-color:rgba(29,36,30,.5);color:var(--ink)}
   .hero .aboutBtn{margin-left:8px}
-  .hero .langBtn{margin-left:auto;align-self:flex-start;height:40px;padding:0 12px;border-radius:99px;display:flex;align-items:center;gap:7px;font-family:"Prompt",sans-serif;font-size:13px;font-weight:500;letter-spacing:.4px;cursor:pointer}
+  .hero .langBtn{margin-left:auto;align-self:flex-start;height:40px;padding:0 12px;border-radius:99px;display:flex;align-items:center;gap:7px;font-family:"Mitr",sans-serif;font-size:13px;font-weight:500;letter-spacing:.4px;cursor:pointer}
   .langBtn span{opacity:.45;transition:opacity .2s}
   html[lang=th] .langBtn [data-l=th],html[lang=en] .langBtn [data-l=en]{opacity:1;font-weight:700}
   .langBtn span{line-height:1;display:block}
@@ -251,6 +251,61 @@
   @media (max-width:420px){.hero .langBtn{padding:0 9px;gap:5px;font-size:12px}.hero .aboutBtn{width:38px;height:38px;margin-left:6px}.hero header{gap:11px}.hero .logo{width:52px;height:52px;border-radius:16px}}
   .lg{display:inline-flex;align-items:center;gap:6px;margin:2px 7px}.lg i{width:9px;height:9px;border-radius:50%;display:block}
   .ab-close{display:grid;place-items:center}
+  /* ===== ลุคฉลากผลไม้: เรียบ เส้นหมึก มุมเหลี่ยมนิดๆ ไม่มีเงา/ไล่สี ===== */
+  body{background:#1c1b18}
+  .app{background:#fff}
+  .hero{background:#ffd23f!important;padding-bottom:28px;border-bottom:2px solid var(--ink)}
+  .hero h1{font-weight:600;letter-spacing:0}
+  .hero-t{font-weight:600;letter-spacing:0;line-height:1.28;font-size:clamp(30px,8.6vw,42px)}
+  .hero .aboutBtn,.hero .langBtn{border-radius:6px!important;border:1.5px solid var(--ink)!important;background:transparent}
+  .hero .aboutBtn{width:36px;height:36px}.hero .langBtn{height:36px}
+  .hero .aboutBtn:hover,.hero .langBtn:hover{background:var(--ink);color:#ffd23f}
+  #route .rt i{border-radius:8px;width:36px;height:36px}
+  main.sheet{margin:0;border-radius:0;box-shadow:none;background:#fff;padding:22px 20px 8px}
+  .sheet .card{background:transparent;border-radius:0;padding:0;box-shadow:none;margin-top:0}
+  .btns{gap:10px}
+  .btns button,.btns .filebtn,#shoot,#mapBtn{border-radius:6px;height:54px;border:2px solid var(--ink);box-shadow:none;padding:0 16px;font-weight:500;transition:background .15s,color .15s,transform .1s}
+  .btns button,.btns .filebtn{justify-content:flex-start}
+  .btns button::after,.btns .filebtn::after{content:none}
+  .btns #camBtn{background:var(--ink);color:#fff}
+  .btns #camBtn:not(:disabled):hover{background:#ffd23f;color:var(--ink)}
+  .btns .filebtn{background:#fff}.btns .filebtn:hover{background:#ffd23f}
+  #shoot{background:#ffd23f;color:var(--ink)}
+  #mapBtn{background:#fff;height:46px;font-size:15px}
+  button:active,.filebtn:active{transform:translateY(1px)}
+  #view{border-radius:6px;border:2px solid var(--ink);background:#f1efe8}
+  #empty{border-radius:6px;background:none;border:2px dashed rgba(28,27,24,.35);aspect-ratio:auto;padding:46px 26px 58px}
+  #empty b{font-weight:500}
+  #empty::before,#empty::after{border-radius:0;border-width:3px;opacity:1}
+  .scale{display:flex;gap:4px;margin-top:20px}
+  .scale span{flex:1;font-size:11px;color:var(--muted);text-align:center;line-height:1.3}
+  .scale i{display:block;height:12px;background:var(--c);margin-bottom:6px}
+  .lg i{border-radius:2px}
+  .chip{border-radius:4px;background:transparent;border:1.5px solid var(--ink);padding:3px 11px 3px 9px}
+  .chip::before{border-radius:2px;width:9px;height:9px}
+  #result{border-top:2px solid var(--ink);margin-top:22px;padding-top:6px!important}
+  .item{border-top:1.5px solid rgba(28,27,24,.2)}
+  .item h3 b{font-weight:600;font-size:34px;letter-spacing:0}
+  .days{border-left:3px solid var(--ink)}
+  .strip{height:16px;border-radius:2px;background:linear-gradient(90deg,#4f9a2f 0 25%,#a7b521 25% 50%,#f5c518 50% 75%,#b07a10 75% 100%)}
+  .strip::after{content:none}
+  .pin{top:6px;width:4px;height:32px;margin-left:-2px;border:0;border-radius:0;background:var(--ink);box-shadow:none}
+  .ticks{display:grid;grid-template-columns:repeat(4,1fr);text-align:center}
+  .track{border-radius:2px;background:#eceae2}.fill{border-radius:2px}
+  .warn{border-radius:4px;background:#fff3c4}
+  details.fold{padding:4px 0;border-top:2px solid var(--ink);margin-top:0;background:transparent}
+  details.fold:last-of-type{border-bottom:2px solid var(--ink)}
+  .sheet details.fold{padding:4px 0}
+  details.tips{margin-top:26px}
+  details.fold>summary{font-weight:500;font-size:17px}
+  .steps li::before{border-radius:4px;background:var(--ink);color:#ffd23f}
+  .sheet footer{padding:20px 0 28px}
+  dialog#about{border-radius:8px;box-shadow:none;border:2px solid var(--ink)}
+  .ab-head{border-bottom:2px solid var(--ink)}
+  .stat{border-radius:6px;background:transparent;border:1.5px solid var(--ink)}
+  .maker i{border-radius:6px}
+  .sp-tip{border-radius:6px;background:rgba(255,255,255,.6);border:1.5px solid var(--ink)}
+  @media (min-width:700px){.app{border-radius:10px}}
 </style>
 </head>
 <body>
@@ -292,7 +347,7 @@
     <p id="status">กำลังโหลดโมเดล AI…</p>
     <video id="video" playsinline muted></video>
     <canvas id="view"></canvas>
-    <div id="empty"><div><b>วางกล้วยให้อยู่ในกรอบ</b>เปิดกล้องหรืออัปโหลดรูป แล้วดูว่าสุกยัง</div></div>
+    <div id="empty"><div><b>วางกล้วยให้อยู่ในกรอบ</b>เปิดกล้องหรืออัปโหลดรูป แล้วดูว่าสุกยัง<div class="scale"><span style="--c:#4f9a2f"><i></i>ดิบ</span><span style="--c:#a7b521"><i></i>เริ่มสุก</span><span style="--c:#f5c518"><i></i>สุก</span><span style="--c:#b07a10"><i></i>เริ่มงอม</span><span style="--c:#6b4a2b"><i></i>งอม</span></div></div></div>
     <button id="mapBtn" style="display:none;margin-top:10px;width:100%"></button>
     <div id="mapLegend" style="display:none;font-size:13px;margin-top:8px;text-align:center">
       <span class="lg"><i style="background:#3caa28"></i>เขียว (ดิบ)</span><span class="lg"><i style="background:#e0b000"></i>เหลือง (สุก)</span><span class="lg"><i style="background:#6e3c19"></i>น้ำตาล/จุดดำ (งอม)</span></div>
@@ -386,6 +441,7 @@ const EN = {
   'เหลือง (สุก)': 'Yellow (ripe)',
   'น้ำตาล/จุดดำ (งอม)': 'Brown / dark spots (overripe)',
   'ถ่ายยังไงให้ตรวจแม่น': 'How to get an accurate scan',
+  'ดิบ': 'Green', 'เริ่มสุก': 'Ripening', 'สุก': 'Ripe', 'เริ่มงอม': 'Early over', 'งอม': 'Overripe',
   'โหมดกล้องจะตรวจเฉพาะกรอบสี่เหลี่ยมที่เห็นบนจอ ให้กล้วยอยู่กลางกรอบ': 'Camera mode only checks the square frame on screen, so keep the banana in the middle.',
   'ให้เห็นตัวกล้วยชัด ไม่โดนบังมาก': 'Make sure the banana is clearly visible and not blocked.',
   'แสงสว่างพอ ไม่ใช้ไฟสีเหลืองจัด': 'Use good light, and avoid strongly yellow lighting.',
