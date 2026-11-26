@@ -116,8 +116,15 @@ const LABELS = {
   'Green':    {th:'ดิบ',      color:'#4f9a2f'},
   'Semi-ripe':{th:'เริ่มสุก', color:'#a7b521'},
   'Ripe':     {th:'สุก',      color:'#e0b000'},
+  'Early-over':{th:'เริ่มงอม', color:'#b07a10'},
   'Overripe': {th:'งอม',      color:'#6b4a2b'},
 };
+// "เริ่มงอม" = ช่วงระหว่างสุกกับงอม: ผลรวมออกมาเป็น "สุก" แต่ CNN เห็นว่างอมเกินครึ่ง (เช่น มีจุดน้ำตาลเยอะ)
+function stageName(prob, cnn) {
+  let n = MODEL.classes[prob.indexOf(Math.max(...prob))];
+  if (n === 'Ripe' && cnn && cnn[3] >= 0.5) n = 'Early-over';
+  return n;
+}
 // ===== Banana AI core: HSV features + Logistic Regression (same as Colab) =====
 const SIZE = 256;
 function rgb2hsv(r, g, b) {            // OpenCV-style: H 0-180, S 0-255, V 0-255
@@ -379,6 +386,8 @@ function daysText(r) {
     if (d < 1) return {short: '<1 วัน', long: '⏳ ใกล้สุกแล้ว คาดว่าสุกภายใน 1 วัน (ที่อุณหภูมิห้อง)'};
     return {short: `สุกใน ~${Math.round(d)} วัน`, long: `⏳ ยังไม่สุก คาดว่าจะสุกในอีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง ประมาณการจากสีเปลือก)`};
   }
+  if (r.name === 'Early-over') return {short: 'กินเร็วๆ นี้',
+    long: '🍌 เริ่มงอม มีจุดน้ำตาลแล้ว หวานจัด ควรกินภายใน 1–2 วัน หรือเก็บแช่เย็นชะลอ จากนั้นเหมาะทำขนม/สมูตตี้'};
   if (r.name === 'Overripe') return {short: 'ทำขนม',
     long: '🍰 เหมาะทำขนม/สมูตตี้ — เปลือกดำไม่ได้แปลว่าเสีย ให้เช็กเนื้อใน กลิ่น และรา ก่อนกิน'};
   const d = r.days, lo = Math.max(0, Math.floor(d - DAYS.mae)), hi = Math.min(DAYS.max_day, Math.ceil(d + DAYS.mae));
@@ -507,7 +516,7 @@ async function analyze(fast = false) {
   if (!boxes.length) { fallback = true; boxes = [{x1:0, y1:0, x2:frame.width, y2:frame.height, score:0}]; }
   const res = [];
   for (const b of boxes) { const {prob, adjusted, cnn, hsv, cmap, days} = await ripeness(b.x1, b.y1, b.x2, b.y2), k = prob.indexOf(Math.max(...prob));
-                           res.push({...b, prob, adjusted, cnn, hsv, cmap, days, name: MODEL.classes[k]}); }
+                           res.push({...b, prob, adjusted, cnn, hsv, cmap, days, name: stageName(prob, cnn)}); }
   res.sort((a, b) => a.x1 - b.x1);
   return {res, fallback};
 }
@@ -605,7 +614,7 @@ function smoothTracks(res) {
   }
   res.forEach((r, i) => { if (!used.has(i)) tracks.push({...r, prob: r.prob.slice(), hits: 1, miss: 0}); });
   tracks = tracks.filter(t => t.miss <= 3);
-  const out = tracks.filter(t => t.hits >= 2 && t.miss <= 2).map(t => ({...t, name: MODEL.classes[t.prob.indexOf(Math.max(...t.prob))]}));
+  const out = tracks.filter(t => t.hits >= 2 && t.miss <= 2).map(t => ({...t, name: stageName(t.prob, t.cnn)}));
   out.sort((a, b) => a.x1 - b.x1);
   return out;
 }
