@@ -158,6 +158,33 @@
   .sp-dots i{width:6px;height:6px;border-radius:50%;background:rgba(29,36,30,.25);transition:all .3s}
   .sp-dots i.on{width:18px;background:var(--ink);border-radius:99px}
   .sp-msg{transition:opacity .3s}
+  /* ===== ปรับตัวอักษร ชื่อใหญ่ ปุ่มเกี่ยวกับแบบมินิมอล ===== */
+  body{font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  .hero header{gap:14px;align-items:center;padding-top:24px}
+  .hero .logo{width:60px;height:60px;border-radius:18px}
+  .hero .logo>rect:first-child{fill:#ffd23f}
+  .hero .logo path,.hero .logo g rect{fill:#1d241e;stroke:#1d241e}
+  .hero .logo path{stroke-width:2.5}.hero .logo g rect{stroke-width:0}
+  .brand{min-width:0}
+  .hero h1{font-size:clamp(40px,11.5vw,52px);line-height:1;letter-spacing:-1px;font-weight:700}
+  .hero .tag{margin:6px 0 0;font-size:14px;letter-spacing:.1px}
+  .hero .aboutBtn{margin-left:auto;align-self:flex-start;width:40px;height:40px;padding:0;border-radius:50%;display:grid;place-items:center;background:transparent;color:rgba(255,255,255,.85);border:1.5px solid rgba(255,255,255,.3);transition:background .2s,color .2s}
+  .hero .aboutBtn:hover{background:rgba(255,255,255,.12);color:#fff}
+  .hero-t{font-size:clamp(28px,7.6vw,34px);margin-top:22px}
+  .hero-s{font-size:16px;color:rgba(255,255,255,.78)}
+  .rt{font-size:13px}
+  .rt i,.route u{transition:background .4s ease}
+  .rt.done i{background:rgba(255,210,63,.35)}
+  .rt.on{color:#fff;font-weight:600}
+  .route u.done{background:repeating-linear-gradient(90deg,var(--banana) 0 6px,transparent 6px 11px)}
+  .btns button,.btns .filebtn{font-size:17px;font-weight:600;letter-spacing:.1px}
+  .item h3 b{font-size:34px}
+  .days{font-size:17px;line-height:1.5}
+  .ticks{font-size:13px}
+  details.fold>summary{font-size:17px}
+  .tips li{font-size:16px}
+  .maker{display:flex;align-items:center;gap:12px;margin:8px 0;font-size:16px}
+  .maker i{font-style:normal;width:38px;height:38px;border-radius:50%;background:var(--banana);display:grid;place-items:center;font-family:"Prompt",sans-serif;font-weight:700}
 </style>
 </head>
 <body>
@@ -175,17 +202,17 @@
 <section class="hero">
   <header>
   <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#1d241e"/><g transform="translate(33 33) scale(1.05) rotate(-18) translate(-32 -32)"><path d="M8 21 C12 47 45 55 57 22 C58 20 55 19 54 21 C44 41 21 38 14 18 C13 16 9 18 8 21 Z" fill="#ffd23f" stroke="#ffd23f" stroke-width="2.5" stroke-linejoin="round"/><rect x="9" y="12" width="6" height="8" rx="2.5" transform="rotate(-8 12 16)" fill="#ffd23f"/></g></svg>
-  <div>
-    <h1>สุกยัง?<small class="en">SukYang</small></h1>
-    <p class="tag">ถามกล้วยไม่ได้ ถาม AI แทน</p>
+  <div class="brand">
+    <h1>สุกยัง?</h1>
+    <p class="tag">SukYang · ถามกล้วยไม่ได้ ถาม AI แทน</p>
   </div>
-  <button class="aboutBtn" id="aboutBtn" type="button">ℹ️ เกี่ยวกับ</button>
+  <button class="aboutBtn" id="aboutBtn" type="button" aria-label="เกี่ยวกับโปรเจกต์" title="เกี่ยวกับโปรเจกต์"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><circle cx="12" cy="7.5" r=".6" fill="currentColor"/></svg></button>
 </header>
   <h2 class="hero-t">ถ่ายรูปกล้วย<br>แล้วดูว่าสุกยัง</h2>
-  <p class="hero-s">AI ดูสีเปลือกให้ บอกระดับความสุกและจำนวนวันที่ยังกินได้</p>
-  <div class="route" aria-hidden="true">
-    <div class="rt"><i>📷</i><span>ถ่ายรูป</span></div><u></u>
-    <div class="rt on"><i>🔍</i><span>AI ตรวจ</span></div><u></u>
+  <p class="hero-s">AI ดูสีเปลือก บอกความสุกและวันที่ยังกินได้</p>
+  <div class="route" id="route" aria-label="ขั้นตอน">
+    <div class="rt on"><i>📷</i><span>ถ่ายรูป</span></div><u></u>
+    <div class="rt"><i>🔍</i><span>AI ตรวจ</span></div><u></u>
     <div class="rt"><i>🍌</i><span>ดูผล</span></div>
   </div>
 </section>
@@ -242,6 +269,9 @@
   <div class="ab-head"><h2 id="abTitle">เกี่ยวกับโปรเจกต์</h2><button class="ab-close" id="abClose" type="button" aria-label="ปิด">✕</button></div>
   <div class="ab-body">
     <p>สุกยัง? คือเว็บที่ใช้ AI ดูสีเปลือกกล้วยแล้วบอกว่าสุกแค่ไหนและยังกินได้อีกกี่วัน ทำเป็นมินิโปรเจกต์วิชา AI for EE (67342EPE1)</p>
+    <h3>ผู้จัดทำ</h3>
+    <div class="maker"><i>ณ</i><span>นายณภัทร สลักเพชร</span></div>
+    <div class="maker"><i>ย</i><span>นายยศภัทร วิเชียร</span></div>
     <h3>ความแม่นยำ</h3>
     <div class="stat"><b>96.8%</b><span>ตัวจำแนกความสุก (CNN) ตอบถูก 337 จาก 348 ภาพในชุดตรวจสอบ ที่ผิดคือสลับกับระดับที่อยู่ติดกัน</span></div>
     <p style="font-size:13px;color:var(--muted)">วัดจากภาพชุดที่ใช้พัฒนา ภาพถ่ายจริงของคุณอาจต่างออกไปเล็กน้อย</p>
@@ -726,6 +756,11 @@ function fuseRules(prob, hsv, features, cnn) {
   return {prob: p, adjusted: why ? {why, from, fromP, green: gr} : null};
 }
 
+
+function setStep(n) {   // 0 = ถ่ายรูป, 1 = AI ตรวจ, 2 = ดูผล
+  document.querySelectorAll('#route .rt').forEach((el, i) => { el.classList.toggle('on', i === n); el.classList.toggle('done', i < n); });
+  document.querySelectorAll('#route u').forEach((el, i) => el.classList.toggle('done', i < n));
+}
 async function analyze(fast = false) {
   let boxes = await detect(fast && liveSession ? liveSession : session, !fast), fallback = false;
   if (boxes.length) boxes = boxes.concat(extraBoxes(boxes));
@@ -777,6 +812,7 @@ function ripeT(r) {
 }
 function showResults(res, fallback) {
   $('result').style.display = 'block';
+  if (!live) setStep(2);
   const counts = {};
   res.forEach(r => counts[r.name] = (counts[r.name] || 0) + 1);
   $('summary').innerHTML = (fallback ? '' : `<span class="chip" style="--c:#1d241e">พบกล้วย ${res.length} จุด</span>`) +
@@ -870,20 +906,20 @@ function stopCam() {
 }
 
 $('camBtn').onclick = async () => {
-  if (stream) { stopCam(); return; }
+  if (stream) { stopCam(); setStep(0); return; }
   try {
     stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment', width:{ideal:1280}}, audio:false});
     $('video').srcObject = stream; await $('video').play();
     $('view').style.display = 'block'; $('shoot').style.display = 'block'; $('camBtn').textContent = '✖ ปิดกล้อง';
-    lastResults = []; live = true; renderLoop();
+    lastResults = []; live = true; renderLoop(); setStep(1);
     setStatus('⏳ กำลังเตรียมโหมดกล้องสด…'); await loadLiveModel(); setStatus('✅ โหมดกล้องสด — กด "หยุดภาพและดูผล" เพื่อวิเคราะห์ละเอียด', 'ok');
     analyzeLoop();
-  } catch (e) { alert('เปิดกล้องไม่ได้: ' + e.message + '\nลองกด "อัปโหลดรูป" แทน'); }
+  } catch (e) { setStep(0); alert('เปิดกล้องไม่ได้: ' + e.message + '\nลองกด "อัปโหลดรูป" แทน'); }
 };
 $('shoot').onclick = async () => {               // หยุดภาพ แล้ววิเคราะห์ใหม่ด้วย YOLOv8s ตัวหลัก (แม่นกว่า)
   const v = $('video');
   if (v.videoWidth) loadFrame(v, v.videoWidth, v.videoHeight, true, snapC, snapX);   // เก็บภาพไว้ก่อนปิดกล้อง
-  stopCam(); busy = false;
+  stopCam(); busy = false; setStep(1);
   if (liveTask) await liveTask.catch(() => {});                                       // รอให้การวิเคราะห์สดที่ค้างอยู่จบก่อน
   frame.width = snapC.width; frame.height = snapC.height; fctx.drawImage(snapC, 0, 0);
   if (modelReady) { setStatus('⏳ รอโมเดลโหลดให้เสร็จก่อน…'); await modelReady; }
@@ -895,7 +931,7 @@ $('shoot').onclick = async () => {               // หยุดภาพ แล
 };
 $('file').onchange = e => {
   const f = e.target.files[0]; if (!f) return;
-  stopCam();
+  stopCam(); setStep(1);
   const waitLive = liveTask ? liveTask.catch(() => {}) : Promise.resolve();
   const im = new Image();
   im.onload = async () => {
