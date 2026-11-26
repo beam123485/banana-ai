@@ -205,7 +205,7 @@ function predict(features, W) {
 }
 
 // ===== YOLO post-processing (output [1, 4+C, N]) =====
-function yoloDecode(out, N, conf, scale, padX, padY, W, H, scoreRow) {
+function yoloDecode(out, N, conf, scale, padX, padY, W, H, scoreRow, post = true) {
   const boxes = [];
   for (let i = 0; i < N; i++) {
     const s = out[scoreRow * N + i];
@@ -215,7 +215,7 @@ function yoloDecode(out, N, conf, scale, padX, padY, W, H, scoreRow) {
     const x2 = Math.min(W, (cx + w / 2 - padX) / scale), y2 = Math.min(H, (cy + h / 2 - padY) / scale);
     if (x2 - x1 > 4 && y2 - y1 > 4) boxes.push({ x1, y1, x2, y2, score: s });
   }
-  return dropOverlap(dropContained(nms(boxes, 0.45), 0.6), 0.4);
+  return post ? dropOverlap(dropContained(nms(boxes, 0.45), 0.6), 0.4) : nms(boxes, 0.45);
 }
 const area = b => (b.x2 - b.x1) * (b.y2 - b.y1);
 function inter(a, b) {
@@ -238,7 +238,7 @@ function dropOverlap(boxes, thr) {
   const keep = [];
   for (const b of [...boxes].sort((a, c) => c.score - a.score))
     if (keep.every(k => inter(k, b) / Math.min(area(k), area(b)) < thr)) keep.push(b);
-  return keep.slice(0, 10);
+  return keep.slice(0, 12);
 }
 const $ = id => document.getElementById(id);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
@@ -277,21 +277,58 @@ async function loadModel() {
 }
 let modelReady = null;
 
-async function detect(sess = session) {       // ใช้ภาพใน frame canvas
-  const W = frame.width, H = frame.height;
-  if (!sess) return [];
-  const sc = Math.min(YOLO_SIZE / W, YOLO_SIZE / H), nw = Math.round(W * sc), nh = Math.round(H * sc);
+async function detectRegion(sess, rx, ry, rw, rh, flip, post) {   // ตรวจเฉพาะส่วนของภาพ (อาจพลิกซ้าย-ขวา)
+  const sc = Math.min(YOLO_SIZE / rw, YOLO_SIZE / rh), nw = Math.round(rw * sc), nh = Math.round(rh * sc);
   const px = Math.floor((YOLO_SIZE - nw) / 2), py = Math.floor((YOLO_SIZE - nh) / 2);
+  lctx.setTransform(1, 0, 0, 1, 0, 0);
   lctx.fillStyle = 'rgb(114,114,114)'; lctx.fillRect(0, 0, YOLO_SIZE, YOLO_SIZE);
-  lctx.drawImage(frame, 0, 0, W, H, px, py, nw, nh);
+  if (flip) lctx.setTransform(-1, 0, 0, 1, YOLO_SIZE, 0);
+  lctx.drawImage(frame, rx, ry, rw, rh, px, py, nw, nh);
+  lctx.setTransform(1, 0, 0, 1, 0, 0);
   const d = lctx.getImageData(0, 0, YOLO_SIZE, YOLO_SIZE).data, N = YOLO_SIZE * YOLO_SIZE;
   const t = new Float32Array(3 * N);
   for (let i = 0; i < N; i++) { t[i] = d[4*i] / 255; t[N+i] = d[4*i+1] / 255; t[2*N+i] = d[4*i+2] / 255; }
   const out = await sess.run({ [sess.inputNames[0]]: new ort.Tensor('float32', t, [1, 3, YOLO_SIZE, YOLO_SIZE]) });
   const o = out[sess.outputNames[0]];
-  return yoloDecode(o.data, o.dims[2], CONF, sc, px, py, W, H, BANANA_ROW);
+  // ถ้าพลิกภาพ ให้ถอดพิกัด x กลับมาเป็นภาพจริง (ตรวจในภาพที่ถูกพลิก = ไม่ต้องใช้ padX เดิมของภาพจริง)
+  const bs = yoloDecode(o.data, o.dims[2], CONF, sc, px, py, rw, rh, BANANA_ROW, post);
+  return bs.map(b => flip ? {x1: rx + rw - b.x2, y1: ry + b.y1, x2: rx + rw - b.x1, y2: ry + b.y2, score: b.score}
+                          : {x1: rx + b.x1, y1: ry + b.y1, x2: rx + b.x2, y2: ry + b.y2, score: b.score});
 }
-
+// รวมผลตรวจ 2 รอบ: กรอบที่ซ้อนกัน (IoU>0.55) เฉลี่ยตำแหน่ง ส่วนที่เจอรอบเดียวคงไว้
+function fuseBoxes(a, b) {
+  const out = a.map(x => ({...x})), used = new Set();
+  for (const y of b) {
+    let bi = 0.55, k = -1;
+    out.forEach((x, i) => { if (used.has(i)) return; const ia = inter(x, y), v = ia / (area(x) + area(y) - ia); if (v > bi) { bi = v; k = i; } });
+    if (k >= 0) { used.add(k); const x = out[k]; for (const c of ['x1', 'y1', 'x2', 'y2']) x[c] = (x[c] + y[c]) / 2; x.score = Math.max(x.score, y.score); }
+    else if (y.score >= 0.4) out.push({...y});   // เจอรอบเดียว ต้องมั่นใจพอ
+  }
+  return out;
+}
+async function detect(sess = session, strong = false) {   // ใช้ภาพใน frame canvas
+  const W = frame.width, H = frame.height;
+  if (!sess) return [];
+  if (!strong) return detectRegion(sess, 0, 0, W, H, false, true);
+  // โหมดละเอียด: ตรวจภาพปกติ + ภาพพลิก แล้วรวมผล
+  let boxes = fuseBoxes(await detectRegion(sess, 0, 0, W, H, false, false), await detectRegion(sess, 0, 0, W, H, true, false));
+  boxes = dropOverlap(dropContained(nms(boxes, 0.45), 0.6), 0.4);
+  // ถ้าเจอกล้วยเยอะ (กองกล้วย) ให้ตรวจซ้ำแบบแบ่งภาพ 2x2 แล้วรวมเพิ่ม
+  if (boxes.length >= 5) {
+    const tw = Math.round(W * 0.6), th = Math.round(H * 0.6), pool = [...boxes];
+    for (const [tx, ty] of [[0, 0], [W - tw, 0], [0, H - th], [W - tw, H - th]]) {
+      const m = 4;
+      for (const b of await detectRegion(sess, tx, ty, tw, th, false, true)) {
+        const cutL = b.x1 - tx < m && tx > 0, cutR = tx + tw - b.x2 < m && tx + tw < W - 1;
+        const cutT = b.y1 - ty < m && ty > 0, cutB = ty + th - b.y2 < m && ty + th < H - 1;
+        if (cutL || cutR || cutT || cutB) continue;               // ทิ้งกรอบที่ถูกตัดโดยขอบช่อง
+        if (boxes.every(k => inter(k, b) / Math.min(area(k), area(b)) < 0.15)) pool.push(b);   // รับเฉพาะกรอบในที่ว่าง
+      }
+    }
+    boxes = dropOverlap(dropContained(nms(pool, 0.45), 0.6), 0.4).slice(0, 12);
+  }
+  return boxes;
+}
 async function cnnPredict(ax, ay, bw, bh) {   // ย่อภาพให้ด้านยาว = 224 แล้วเติมขอบเทา 114 ให้เป็นจัตุรัส (เหมือนตอนเทรน)
   if (!cnnSession) return null;
   const k = CNN_SIZE / Math.max(bw, bh), nw = Math.max(1, Math.round(bw * k)), nh = Math.max(1, Math.round(bh * k));
@@ -464,7 +501,7 @@ function fuseRules(prob, hsv, features, cnn) {
 }
 
 async function analyze(fast = false) {
-  let boxes = await detect(fast && liveSession ? liveSession : session), fallback = false;
+  let boxes = await detect(fast && liveSession ? liveSession : session, !fast), fallback = false;
   if (boxes.length) boxes = boxes.concat(extraBoxes(boxes));
   else boxes = blobBoxes();
   if (!boxes.length) { fallback = true; boxes = [{x1:0, y1:0, x2:frame.width, y2:frame.height, score:0}]; }
@@ -551,13 +588,34 @@ function renderLoop() {
   }
   requestAnimationFrame(renderLoop);
 }
+// ทำให้ผลกล้องสดนิ่ง: ติดตามกรอบข้ามเฟรม เฉลี่ยความน่าจะเป็น และกรองกรอบที่โผล่แวบเดียว
+let tracks = [];
+function smoothTracks(res) {
+  const used = new Set();
+  for (const t of tracks) {
+    let best = -1, bi = 0.4;
+    res.forEach((r, i) => { if (used.has(i)) return; const ia = inter(t, r), v = ia / ((t.x2-t.x1)*(t.y2-t.y1) + (r.x2-r.x1)*(r.y2-r.y1) - ia + 1e-6); if (v > bi) { bi = v; best = i; } });
+    if (best >= 0) {
+      used.add(best); const r = res[best], a = 0.5;
+      for (const k of ['x1', 'y1', 'x2', 'y2']) t[k] = t[k] * (1 - a) + r[k] * a;
+      t.prob = t.prob.map((p, j) => p * (1 - a) + r.prob[j] * a);
+      Object.assign(t, {adjusted: r.adjusted, cnn: r.cnn, hsv: r.hsv, cmap: r.cmap, days: r.days, score: r.score});
+      t.hits++; t.miss = 0;
+    } else t.miss++;
+  }
+  res.forEach((r, i) => { if (!used.has(i)) tracks.push({...r, prob: r.prob.slice(), hits: 1, miss: 0}); });
+  tracks = tracks.filter(t => t.miss <= 3);
+  const out = tracks.filter(t => t.hits >= 2 && t.miss <= 2).map(t => ({...t, name: MODEL.classes[t.prob.indexOf(Math.max(...t.prob))]}));
+  out.sort((a, b) => a.x1 - b.x1);
+  return out;
+}
 async function analyzeLoop() {
   while (live) {
     const v = $('video');
     if (v.videoWidth) {
       loadFrame(v, v.videoWidth, v.videoHeight, true);
       liveTask = analyze(true); const r = await liveTask; liveTask = null;
-      if (live) lastResults = [r.res, r.fallback];
+      if (live) lastResults = [smoothTracks(r.fallback ? [] : r.res), r.fallback && !tracks.length];
     }
     await new Promise(ok => setTimeout(ok, 30));   // เว้นจังหวะให้เบราว์เซอร์วาดภาพ
   }
@@ -569,6 +627,7 @@ function loadLiveModel() {
 }
 
 function stopCam() {
+  tracks = [];
   live = false;
   if (stream) stream.getTracks().forEach(t => t.stop()); stream = null;
   $('shoot').style.display = 'none'; $('camBtn').textContent = '📷 เปิดกล้อง';
