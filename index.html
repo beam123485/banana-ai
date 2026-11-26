@@ -117,6 +117,47 @@
   .steps b{display:block;font-family:"Prompt",sans-serif;font-size:16px;font-weight:600}
   .steps span{font-size:14px;color:var(--muted)}
   @media (prefers-reduced-motion:reduce){.sway,.sp-logo,.sp-name,.sp-en,.sp-bar,.sp-msg,dialog#about[open]{animation:none}.sp-bar i{transition:none}#splash{transition:none}}
+  /* ===== สกินใหม่: หัวเข้ม + แผ่นขาวมนซ้อนขึ้นมา ===== */
+  body{background:#121813}
+  .app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--ink)}
+  .hero{position:relative;overflow:hidden;color:#fff;padding:0 20px 56px;background:radial-gradient(90% 70% at 100% 0%,rgba(255,210,63,.28) 0%,rgba(255,210,63,0) 60%),linear-gradient(165deg,#1d241e 0%,#263428 100%)}
+  .hero header{max-width:none;margin:0;padding:22px 0 8px}
+  .hero h1{color:#fff}
+  .hero .tag,.hero h1 .en{color:rgba(255,255,255,.65)}
+  .hero .aboutBtn{background:rgba(255,255,255,.14);color:#fff}
+  .hero-t{font-family:"Prompt",sans-serif;font-weight:700;font-size:clamp(30px,8.4vw,40px);line-height:1.2;margin:18px 0 8px;letter-spacing:-.4px}
+  .hero-s{margin:0;color:rgba(255,255,255,.72);font-size:15px;max-width:30em}
+  .route{display:flex;align-items:flex-start;margin-top:24px;padding:14px 16px;border-radius:22px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1)}
+  .rt{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;font-size:12px;color:rgba(255,255,255,.75)}
+  .rt i{font-style:normal;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-size:18px;background:rgba(255,255,255,.12)}
+  .rt.on i{background:var(--banana)}
+  .route u{flex:1;height:2px;margin:19px 8px 0;border-radius:2px;background:repeating-linear-gradient(90deg,rgba(255,255,255,.4) 0 6px,transparent 6px 11px)}
+  main.sheet{flex:1;max-width:none;margin:-30px 0 0;position:relative;background:#fff;border-radius:32px 32px 0 0;padding:22px 18px 8px;box-shadow:0 -10px 30px -12px rgba(0,0,0,.35)}
+  .sheet .card{background:#f4f7ee;box-shadow:none;border-radius:24px;margin-top:14px}
+  .cap{display:block}
+  .btns{grid-template-columns:1fr;gap:10px}
+  .btns button,.btns .filebtn{display:flex;align-items:center;justify-content:space-between;text-align:left;border-radius:99px;padding:0 20px;height:58px;font-size:17px;background:#fff;color:var(--ink);border:1.5px solid var(--line);box-shadow:0 6px 16px -12px rgba(29,36,30,.5)}
+  .btns button::after,.btns .filebtn::after{content:"›";font-size:26px;line-height:1;color:var(--muted)}
+  .btns #camBtn{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btns #camBtn::after{color:var(--banana)}
+  .btns button:disabled{opacity:.55}
+  #shoot{background:linear-gradient(90deg,#ffd23f,#ffb703);color:var(--ink);border-radius:99px;height:58px;box-shadow:0 12px 24px -12px rgba(255,183,3,.9)}
+  #mapBtn{border-radius:99px;background:#eef2e6}
+  #view,#empty{border-radius:24px}
+  #empty{background:repeating-linear-gradient(135deg,#f6f8f1 0 12px,#eef2e6 12px 24px)}
+  .sheet footer{padding:22px 0 26px}
+  .sheet details.fold{padding:6px 20px}
+  @media (min-width:700px){body{padding:24px 0}.app{border-radius:36px;overflow:hidden;min-height:0}}
+  /* ===== หน้าโหลด: ข้อความรอนาน + ความรู้เรื่องกล้วย ===== */
+  .sp-tip{margin-top:26px;width:min(320px,86vw);padding:14px 18px 12px;border-radius:22px;background:rgba(255,255,255,.55);text-align:left;animation:rise .5s ease both}
+  .sp-tip[hidden]{display:none}
+  .sp-tip b{font-family:"Prompt",sans-serif;font-size:14px}
+  .sp-tip p{margin:6px 0 0;font-size:14px;line-height:1.55;min-height:66px;transition:opacity .4s ease}
+  .sp-tip p.fade{opacity:0}
+  .sp-dots{display:flex;gap:5px;margin-top:8px}
+  .sp-dots i{width:6px;height:6px;border-radius:50%;background:rgba(29,36,30,.25);transition:all .3s}
+  .sp-dots i.on{width:18px;background:var(--ink);border-radius:99px}
+  .sp-msg{transition:opacity .3s}
 </style>
 </head>
 <body>
@@ -127,9 +168,12 @@
     <div class="sp-en">SUKYANG</div>
     <div class="sp-bar"><i id="spFill"></i></div>
     <div class="sp-msg" id="spMsg">กำลังเตรียมความพร้อม…</div>
+    <div class="sp-tip" id="spTip" hidden><b>ความรู้เรื่องกล้วย</b><p id="spTipText"></p><div class="sp-dots" id="spDots"></div></div>
   </div>
 </div>
-<header>
+<div class="app">
+<section class="hero">
+  <header>
   <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#1d241e"/><g transform="translate(33 33) scale(1.05) rotate(-18) translate(-32 -32)"><path d="M8 21 C12 47 45 55 57 22 C58 20 55 19 54 21 C44 41 21 38 14 18 C13 16 9 18 8 21 Z" fill="#ffd23f" stroke="#ffd23f" stroke-width="2.5" stroke-linejoin="round"/><rect x="9" y="12" width="6" height="8" rx="2.5" transform="rotate(-8 12 16)" fill="#ffd23f"/></g></svg>
   <div>
     <h1>สุกยัง?<small class="en">SukYang</small></h1>
@@ -137,8 +181,16 @@
   </div>
   <button class="aboutBtn" id="aboutBtn" type="button">ℹ️ เกี่ยวกับ</button>
 </header>
-<main>
-  <section class="card">
+  <h2 class="hero-t">ถ่ายรูปกล้วย<br>แล้วดูว่าสุกยัง</h2>
+  <p class="hero-s">AI ดูสีเปลือกให้ บอกระดับความสุกและจำนวนวันที่ยังกินได้</p>
+  <div class="route" aria-hidden="true">
+    <div class="rt"><i>📷</i><span>ถ่ายรูป</span></div><u></u>
+    <div class="rt on"><i>🔍</i><span>AI ตรวจ</span></div><u></u>
+    <div class="rt"><i>🍌</i><span>ดูผล</span></div>
+  </div>
+</section>
+<main class="sheet">
+  <section class="cap">
     <div class="btns">
       <button class="primary" id="camBtn" disabled>📷 เปิดกล้อง</button>
       <label class="filebtn secondary" id="fileLbl">🖼️ อัปโหลดรูป<input type="file" id="file" accept="image/*" hidden></label>
@@ -182,7 +234,9 @@
     </ol>
     <p class="sub" style="font-size:14px;margin-top:14px">ทุกขั้นตอนทำงานในเบราว์เซอร์ของคุณ ภาพไม่ถูกส่งไปไหน</p>
   </details>
+  <footer>สุกยัง? (SukYang) · Mini Project · AI for EE (67342EPE1)</footer>
 </main>
+</div>
 
 <dialog id="about" aria-labelledby="abTitle">
   <div class="ab-head"><h2 id="abTitle">เกี่ยวกับโปรเจกต์</h2><button class="ab-close" id="abClose" type="button" aria-label="ปิด">✕</button></div>
@@ -208,7 +262,7 @@
     </ul>
   </div>
 </dialog>
-<footer>สุกยัง? (SukYang) · Mini Project · AI for EE (67342EPE1)</footer>
+
 
 <script>
 // ====== น้ำหนักโมเดลความสุก (จาก train_ripeness.py → web/ripeness_weights.json) ======
@@ -410,12 +464,35 @@ function splashSet() {
 function splashStep(p) { splash.real = Math.max(splash.real, p); splashSet(); }
 const splashCreep = setInterval(() => { splash.shown += (0.6 - splash.shown) * 0.06; splashSet(); }, 250);
 function finishSplash() {
-  if (splash.done) return; splash.done = true; clearInterval(splashCreep);
+  if (splash.done) return; splash.done = true; clearInterval(splashCreep); clearInterval(splash.tipTimer);
   splash.real = 1; splashSet();
   const el = document.getElementById('splash'), wait = Math.max(0, 1300 - (performance.now() - splash.t0));
   setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 600); }, wait + 250);
 }
-setTimeout(finishSplash, 15000);          // กันค้าง: ถ้าโหลดนานเกิน 15 วินาทีก็เปิดหน้าเว็บให้ใช้
+setTimeout(finishSplash, 90000);
+const BANANA_TIPS = [
+  'ไม่ควรแช่กล้วยดิบในตู้เย็น ความเย็นทำให้เปลือกคล้ำและสุกไม่สม่ำเสมอ ให้เก็บที่อุณหภูมิห้องจนสุกก่อน',
+  'กล้วยปล่อยก๊าซเอทิลีนที่เร่งการสุก การห่อก้านเครือด้วยฟิล์มหรือกระดาษช่วยชะลอการสุกได้บ้าง',
+  'อยากให้กล้วยดิบสุกเร็ว ใส่ถุงกระดาษรวมกับแอปเปิลหรือกล้วยสุก เพราะผลไม้สุกปล่อยเอทิลีนมาก',
+  'จุดน้ำตาลบนเปลือกบอกว่าแป้งในเนื้อกำลังเปลี่ยนเป็นน้ำตาล ยิ่งจุดเยอะยิ่งหวาน แต่ก็ใกล้งอมแล้ว',
+  'อากาศร้อนจัด (เกินราว 30 °C) เปลือกอาจยังเขียวทั้งที่เนื้อด้านในสุกแล้ว',
+  'กล้วยงอมไม่ต้องทิ้ง เหมาะทำขนมกล้วย แพนเค้ก หรือสมูตตี้ เพราะหวานตามธรรมชาติ'
+];
+function startTips() {
+  if (splash.done) return;
+  const box = document.getElementById('spTip'), txt = document.getElementById('spTipText'), dots = document.getElementById('spDots');
+  box.hidden = false; dots.innerHTML = BANANA_TIPS.map(() => '<i></i>').join('');
+  let k = Math.floor(Math.random() * BANANA_TIPS.length);
+  const show = () => { txt.textContent = BANANA_TIPS[k]; [...dots.children].forEach((d, i) => d.classList.toggle('on', i === k)); };
+  show();
+  splash.tipTimer = setInterval(() => {
+    txt.classList.add('fade');
+    setTimeout(() => { k = (k + 1) % BANANA_TIPS.length; show(); txt.classList.remove('fade'); }, 400);
+  }, 6000);
+}
+setTimeout(() => { if (!splash.done) document.getElementById('spMsg').textContent = 'ใช้เวลาไม่นาน โปรดรอสักครู่…'; }, 5000);
+setTimeout(() => { if (!splash.done) { document.getElementById('spMsg').textContent = 'โหลดครั้งแรกอาจนานหน่อย ระหว่างรอลองอ่านความรู้เรื่องกล้วยไปก่อน'; startTips(); } }, 14000);
+          // กันค้าง: ถ้าโหลดนานเกิน 15 วินาทีก็เปิดหน้าเว็บให้ใช้
 (() => {
   const d = document.getElementById('about');
   document.getElementById('aboutBtn').onclick = () => d.showModal();
