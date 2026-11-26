@@ -31,6 +31,7 @@
   .secondary{background:var(--banana)}
   button:disabled{opacity:.4;cursor:default}
   #status{font-size:14px;color:var(--muted);margin:12px 2px 0}
+  #status:empty{display:none}
   #status.ok{color:var(--leaf)}
   #status.err{color:#b3261e}
   #view{max-width:100%;max-height:58vh;border-radius:18px;display:none;margin:14px auto 0;background:#e8ecdf}
@@ -125,7 +126,7 @@
     <div class="sp-name">สุกยัง?</div>
     <div class="sp-en">SUKYANG</div>
     <div class="sp-bar"><i id="spFill"></i></div>
-    <div class="sp-msg" id="spMsg">กำลังปลุก AI…</div>
+    <div class="sp-msg" id="spMsg">กำลังเตรียมความพร้อม…</div>
   </div>
 </div>
 <header>
@@ -193,6 +194,7 @@
     <h3>ข้อจำกัดที่ควรรู้</h3>
     <ul>
       <li>ดูจากเปลือกเท่านั้น ตรวจเนื้อในหรือราไม่ได้ ถ้ามีรา กลิ่นเปรี้ยว หรือน้ำเยิ้ม ไม่ควรกิน</li>
+      <li>เรียนรู้จากกล้วยที่เปลือกเหลืองเมื่อสุก (เช่น กล้วยหอม) ส่วนกล้วยที่เปลือกสีแดงหรือสีอื่น เช่น กล้วยนาก ผลอาจคลาดเคลื่อน โดยเฉพาะอาจอ่านว่างอมทั้งที่ยังสุกดี</li>
       <li>กล้วยกองซ้อนกันเยอะหรือเป็นเครือบนต้น อาจตีกรอบได้ไม่ครบ</li>
       <li>จำนวนวันเป็นการประมาณจากสีเปลือกที่อุณหภูมิห้อง ไม่ใช่ค่าที่แน่นอน</li>
       <li>"เริ่มงอม" มาจากกฎผสมผล ไม่ใช่คลาสที่ฝึกโดยตรง</li>
@@ -380,13 +382,13 @@ async function loadModel() {
     const loadCnn = ort.InferenceSession.create(CNN_FILE, {executionProviders: ['wasm']})
       .then(s => cnnSession = s).catch(e => console.warn('CNN load failed, ใช้ HSV อย่างเดียว', e));
     const bufs = await Promise.all(YOLO_PARTS.map(f => fetch(f).then(r => { if (!r.ok) throw new Error(f + ' ' + r.status); return r.arrayBuffer(); }).then(b => { splashStep(splash.real + 0.17); return b; })));
-    document.getElementById('spMsg').textContent = 'กำลังเตรียม AI…';
+    document.getElementById('spMsg').textContent = 'กำลังเตรียมความพร้อม…';
     const all = new Uint8Array(bufs.reduce((a, b) => a + b.byteLength, 0)); let off = 0;
     for (const b of bufs) { all.set(new Uint8Array(b), off); off += b.byteLength; }
     session = await ort.InferenceSession.create(all, {executionProviders: ['wasm']});
     splashStep(0.85);
     await loadCnn;
-    setStatus(cnnSession ? '✅ โมเดลพร้อมใช้งาน (YOLOv8s + CNN + HSV)' : '✅ โมเดลพร้อมใช้งาน (ไม่มี CNN — ใช้ HSV อย่างเดียว)', 'ok');
+    setStatus(cnnSession ? '' : '✅ โมเดลพร้อมใช้งาน (ไม่มี CNN — ใช้ HSV อย่างเดียว)', 'ok');
   } catch (e) {
     console.error(e);
     try {                                         // มือถือบางเครื่องหน่วยความจำไม่พอสำหรับ YOLOv8s → ใช้ตัวเล็กแทน
@@ -811,7 +813,7 @@ $('shoot').onclick = async () => {               // หยุดภาพ แล
   setStatus('🔍 กำลังวิเคราะห์ละเอียด…');
   const {res, fallback} = await analyze();
   draw(res, fallback); showResults(res, fallback);
-  setStatus('✅ โมเดลพร้อมใช้งาน', 'ok');
+  setStatus('');
   $('result').scrollIntoView({behavior:'smooth'});
 };
 $('file').onchange = e => {
@@ -826,7 +828,7 @@ $('file').onchange = e => {
     setStatus('🔍 กำลังวิเคราะห์…');
     const {res, fallback} = await analyze();
     $('view').style.display = 'block'; draw(res, fallback); showResults(res, fallback);
-    setStatus(session ? '✅ โมเดลพร้อมใช้งาน' : '⚠️ ไม่ได้ใช้ YOLO', session ? 'ok' : 'err');
+    setStatus(session ? '' : '⚠️ ไม่ได้ใช้ YOLO', session ? 'ok' : 'err');
     $('view').scrollIntoView({behavior:'smooth', block:'start'});
   };
   im.src = URL.createObjectURL(f); e.target.value = '';
