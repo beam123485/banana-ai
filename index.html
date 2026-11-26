@@ -185,6 +185,23 @@
   .tips li{font-size:16px}
   .maker{display:flex;align-items:center;gap:12px;margin:8px 0;font-size:16px}
   .maker i{font-style:normal;width:38px;height:38px;border-radius:50%;background:var(--banana);display:grid;place-items:center;font-family:"Prompt",sans-serif;font-weight:700}
+  /* ===== แถบขั้นตอนแบบมินิมอล: จุดกลมเดินเมื่อกำลังประมวลผล ===== */
+  #route{background:none;border:0;padding:0;margin-top:26px;align-items:flex-start}
+  #route .rt{gap:8px;font-size:13px;color:rgba(255,255,255,.6);transition:color .3s}
+  #route .rt i{width:38px;height:38px;border-radius:50%;background:transparent;border:1.5px solid rgba(255,255,255,.28);color:rgba(255,255,255,.7);transition:all .35s ease}
+  #route .rt.on{color:#fff;font-weight:600}
+  #route .rt.on i{background:var(--banana);border-color:var(--banana);color:var(--ink)}
+  #route .rt.done{color:rgba(255,255,255,.85)}
+  #route .rt.done i{background:transparent;border-color:var(--banana);color:var(--banana)}
+  #route u{flex:1;height:38px;margin:0 8px;border-radius:0;background:none;display:flex;justify-content:space-around;align-items:center;text-decoration:none}
+  #route u.done{background:none}
+  #route u b{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .3s}
+  #route u.done b{background:var(--banana)}
+  #route u.flow b{animation:flowdot 1.2s ease-in-out infinite}
+  #route u.flow b:nth-child(2){animation-delay:.15s}#route u.flow b:nth-child(3){animation-delay:.3s}
+  #route u.flow b:nth-child(4){animation-delay:.45s}#route u.flow b:nth-child(5){animation-delay:.6s}
+  @keyframes flowdot{0%,100%{background:rgba(255,255,255,.25);transform:scale(1)}35%{background:var(--banana);transform:scale(1.7)}}
+  @media (prefers-reduced-motion:reduce){#route u.flow b{animation:none;background:var(--banana)}}
 </style>
 </head>
 <body>
@@ -211,9 +228,9 @@
   <h2 class="hero-t">ถ่ายรูปกล้วย<br>แล้วดูว่าสุกยัง</h2>
   <p class="hero-s">AI ดูสีเปลือก บอกความสุกและวันที่ยังกินได้</p>
   <div class="route" id="route" aria-label="ขั้นตอน">
-    <div class="rt on"><i>📷</i><span>ถ่ายรูป</span></div><u></u>
-    <div class="rt"><i>🔍</i><span>AI ตรวจ</span></div><u></u>
-    <div class="rt"><i>🍌</i><span>ดูผล</span></div>
+    <div class="rt on"><i><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7H8l1.2-2h5.6L16 7h2.5A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="13" r="3.2"/></svg></i><span>ถ่ายรูป</span></div><u><b></b><b></b><b></b><b></b><b></b></u>
+    <div class="rt"><i><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V6.5A1.5 1.5 0 0 1 5.5 5H8M16 5h2.5A1.5 1.5 0 0 1 20 6.5V9M20 15v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 19H5.5A1.5 1.5 0 0 1 4 17.5V15"/><circle cx="12" cy="12" r="2.2"/></svg></i><span>AI ตรวจ</span></div><u><b></b><b></b><b></b><b></b><b></b></u>
+    <div class="rt"><i><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i><span>ดูผล</span></div>
   </div>
 </section>
 <main class="sheet">
@@ -759,7 +776,7 @@ function fuseRules(prob, hsv, features, cnn) {
 
 function setStep(n) {   // 0 = ถ่ายรูป, 1 = AI ตรวจ, 2 = ดูผล
   document.querySelectorAll('#route .rt').forEach((el, i) => { el.classList.toggle('on', i === n); el.classList.toggle('done', i < n); });
-  document.querySelectorAll('#route u').forEach((el, i) => el.classList.toggle('done', i < n));
+  document.querySelectorAll('#route u').forEach((el, i) => { el.classList.toggle('done', i < n); el.classList.toggle('flow', n === 1 && i === 1); });
 }
 async function analyze(fast = false) {
   let boxes = await detect(fast && liveSession ? liveSession : session, !fast), fallback = false;
