@@ -235,6 +235,22 @@
   #route u.flow b{animation:flowdot2 1.2s ease-in-out infinite}
   @keyframes flowdot2{0%,100%{background:rgba(29,36,30,.25);transform:scale(1)}35%{background:var(--ink);transform:scale(1.7)}}
   @media (prefers-reduced-motion:reduce){#route u.flow b{animation:none;background:var(--ink)}}
+  /* ===== ไอคอนปุ่มแบบเส้น + ส่วนหัวบนมือถือ ===== */
+  .bt{display:inline-flex;align-items:center;gap:12px}
+  .bt svg{flex:none}
+  #shoot,#mapBtn{display:none}
+  #shoot .bt,#mapBtn .bt{justify-content:center}
+  .hero h1{white-space:nowrap;font-size:clamp(34px,9.8vw,48px)}
+  html[lang=en] .hero h1{font-size:clamp(26px,7.4vw,34px)}
+  .hero .brand{flex:1 1 0;min-width:0}
+  .hero .tag{max-width:15em}
+  #status:not(:empty)::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.6;margin-right:9px;vertical-align:1px}
+  #status.err::before,#status.ok::before{opacity:1}
+  .days{padding-left:12px;border-left:3px solid var(--banana)}
+  .warn{border-left:3px solid #e0b000}
+  @media (max-width:420px){.hero .langBtn{padding:0 9px;gap:5px;font-size:12px}.hero .aboutBtn{width:38px;height:38px;margin-left:6px}.hero header{gap:11px}.hero .logo{width:52px;height:52px;border-radius:16px}}
+  .lg{display:inline-flex;align-items:center;gap:6px;margin:2px 7px}.lg i{width:9px;height:9px;border-radius:50%;display:block}
+  .ab-close{display:grid;place-items:center}
 </style>
 </head>
 <body>
@@ -270,17 +286,17 @@
 <main class="sheet">
   <section class="cap">
     <div class="btns">
-      <button class="primary" id="camBtn" disabled>📷 เปิดกล้อง</button>
-      <label class="filebtn secondary" id="fileLbl">🖼️ อัปโหลดรูป<input type="file" id="file" accept="image/*" hidden></label>
+      <button class="primary" id="camBtn" disabled><span class="bt"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7H8l1.2-2h5.6L16 7h2.5A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="13" r="3.2"/></svg><span>เปิดกล้อง</span></span></button>
+      <label class="filebtn secondary" id="fileLbl"><span id="fileTxt"></span><input type="file" id="file" accept="image/*" hidden></label>
     </div>
-    <p id="status">⏳ กำลังโหลดโมเดล AI…</p>
+    <p id="status">กำลังโหลดโมเดล AI…</p>
     <video id="video" playsinline muted></video>
     <canvas id="view"></canvas>
     <div id="empty"><div><b>วางกล้วยให้อยู่ในกรอบ</b>เปิดกล้องหรืออัปโหลดรูป แล้วดูว่าสุกยัง</div></div>
-    <button id="mapBtn" style="display:none;margin-top:10px;width:100%">🎨 ดูแผนที่สีเปลือก</button>
-    <div id="mapLegend" style="display:none;font-size:13px;margin-top:6px;text-align:center">
-      <span style="color:#3caa28">■</span> เขียว (ดิบ) &nbsp; <span style="color:#e0b000">■</span> เหลือง (สุก) &nbsp; <span style="color:#6e3c19">■</span> น้ำตาล/จุดดำ (งอม)</div>
-    <button class="primary" id="shoot">⏸ หยุดภาพและดูผล</button>
+    <button id="mapBtn" style="display:none;margin-top:10px;width:100%"></button>
+    <div id="mapLegend" style="display:none;font-size:13px;margin-top:8px;text-align:center">
+      <span class="lg"><i style="background:#3caa28"></i>เขียว (ดิบ)</span><span class="lg"><i style="background:#e0b000"></i>เหลือง (สุก)</span><span class="lg"><i style="background:#6e3c19"></i>น้ำตาล/จุดดำ (งอม)</span></div>
+    <button class="primary" id="shoot"></button>
   </section>
 
   <section class="card" id="result">
@@ -317,7 +333,7 @@
 </div>
 
 <dialog id="about" aria-labelledby="abTitle">
-  <div class="ab-head"><h2 id="abTitle">เกี่ยวกับโปรเจกต์</h2><button class="ab-close" id="abClose" type="button" aria-label="ปิด">✕</button></div>
+  <div class="ab-head"><h2 id="abTitle">เกี่ยวกับโปรเจกต์</h2><button class="ab-close" id="abClose" type="button" aria-label="ปิด"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <div class="ab-body">
     <p>สุกยัง? คือเว็บที่ใช้ AI ดูสีเปลือกกล้วยแล้วบอกว่าสุกแค่ไหนและยังกินได้อีกกี่วัน ทำเป็นมินิโปรเจกต์วิชา AI for EE (67342EPE1)</p>
     <h3>ผู้จัดทำ</h3>
@@ -363,14 +379,12 @@ const EN = {
   'ถ่ายรูป': 'Snap',
   'AI ตรวจ': 'Analyse',
   'ดูผล': 'Result',
-  '🖼️ อัปโหลดรูป': '🖼️ Upload photo',
-  '⏳ กำลังโหลดโมเดล AI…': '⏳ Loading AI model…',
+  'กำลังโหลดโมเดล AI…': 'Loading AI model…',
   'วางกล้วยให้อยู่ในกรอบ': 'Keep the banana inside the frame',
   'เปิดกล้องหรืออัปโหลดรูป แล้วดูว่าสุกยัง': 'Open the camera or upload a photo to check ripeness',
   'เขียว (ดิบ)': 'Green (unripe)',
   'เหลือง (สุก)': 'Yellow (ripe)',
   'น้ำตาล/จุดดำ (งอม)': 'Brown / dark spots (overripe)',
-  '⏸ หยุดภาพและดูผล': '⏸ Freeze & see result',
   'ถ่ายยังไงให้ตรวจแม่น': 'How to get an accurate scan',
   'โหมดกล้องจะตรวจเฉพาะกรอบสี่เหลี่ยมที่เห็นบนจอ ให้กล้วยอยู่กลางกรอบ': 'Camera mode only checks the square frame on screen, so keep the banana in the middle.',
   'ให้เห็นตัวกล้วยชัด ไม่โดนบังมาก': 'Make sure the banana is clearly visible and not blocked.',
@@ -433,12 +447,23 @@ function applyStatic() {
   document.title = lang === 'en' ? EN_TITLE[1] : EN_TITLE[0];
   document.documentElement.lang = lang;
 }
+const IC = {
+  cam: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5A1.5 1.5 0 0 1 5.5 7H8l1.2-2h5.6L16 7h2.5A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z"/><circle cx="12" cy="13" r="3.2"/></svg>',
+  img: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4.5 17l4.5-4.5 3.5 3.5 3-3 4 4"/></svg>',
+  x: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  pause: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6v12M15 6v12"/></svg>',
+  map: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 12.5l9 5 9-5"/></svg>',
+  back: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.6"/><path d="M4.5 17l4.5-4.5 3.5 3.5 3-3 4 4"/></svg>'
+};
+const btn = (ic, txt) => `<span class="bt">${IC[ic]}<span>${txt}</span></span>`;
 let lastShow = null, statusMsg = null, spMsgState = null, camOn = false;
 function renderDyn() {
   const st = $('status'); if (st && statusMsg !== null) st.textContent = statusMsg ? T(...statusMsg) : '';
   const sp = document.getElementById('spMsg'); if (sp && spMsgState) sp.textContent = T(...spMsgState);
-  if (typeof $ === 'function' && $('camBtn')) $('camBtn').textContent = camOn ? T('✖ ปิดกล้อง', '✖ Close camera') : T('📷 เปิดกล้อง', '📷 Open camera');
-  if ($('mapBtn')) $('mapBtn').textContent = showMap ? T('🖼️ กลับไปดูภาพปกติ', '🖼️ Back to normal view') : T('🎨 ดูแผนที่สีเปลือก', '🎨 Show peel colour map');
+  if ($('camBtn')) $('camBtn').innerHTML = camOn ? btn('x', T('ปิดกล้อง', 'Close camera')) : btn('cam', T('เปิดกล้อง', 'Open camera'));
+  if ($('mapBtn')) $('mapBtn').innerHTML = showMap ? btn('back', T('กลับไปดูภาพปกติ', 'Back to normal view')) : btn('map', T('ดูแผนที่สีเปลือก', 'Show peel colour map'));
+  if ($('shoot')) $('shoot').innerHTML = btn('pause', T('หยุดภาพและดูผล', 'Freeze & see result'));
+  if ($('fileTxt')) $('fileTxt').innerHTML = btn('img', T('อัปโหลดรูป', 'Upload photo'));
   const tt = document.getElementById('spTipText'); if (tt && tipK !== null) tt.textContent = BANANA_TIPS[lang === 'en' ? 1 : 0][tipK];
 }
 function setLang(l) {
@@ -614,7 +639,7 @@ function setStatus(t, cls) { statusMsg = t; $('status').textContent = t ? T(...t
 async function loadModel() {
   try {
     ort.env.wasm.numThreads = 1;
-    setStatus(['⏳ กำลังโหลดโมเดล (ครั้งแรก ~50 MB อาจใช้เวลาสักครู่)…', '⏳ Loading model (first time ~50 MB, may take a moment)…']);
+    setStatus(['กำลังโหลดโมเดล (ครั้งแรก ~50 MB อาจใช้เวลาสักครู่)…', 'Loading model (first time ~50 MB, may take a moment)…']);
     const loadCnn = ort.InferenceSession.create(CNN_FILE, {executionProviders: ['wasm']})
       .then(s => cnnSession = s).catch(e => console.warn('CNN load failed, ใช้ HSV อย่างเดียว', e));
     const bufs = await Promise.all(YOLO_PARTS.map(f => fetch(f).then(r => { if (!r.ok) throw new Error(f + ' ' + r.status); return r.arrayBuffer(); }).then(b => { splashStep(splash.real + 0.17); return b; })));
@@ -624,14 +649,14 @@ async function loadModel() {
     session = await ort.InferenceSession.create(all, {executionProviders: ['wasm']});
     splashStep(0.85);
     await loadCnn;
-    setStatus(cnnSession ? '' : ['✅ โมเดลพร้อมใช้งาน (ไม่มี CNN — ใช้ HSV อย่างเดียว)', '✅ Model ready (no CNN — using HSV only)'], 'ok');
+    setStatus(cnnSession ? '' : ['โมเดลพร้อมใช้งาน (ไม่มี CNN — ใช้ HSV อย่างเดียว)', 'Model ready (no CNN — using HSV only)'], 'ok');
   } catch (e) {
     console.error(e);
     try {                                         // มือถือบางเครื่องหน่วยความจำไม่พอสำหรับ YOLOv8s → ใช้ตัวเล็กแทน
       session = await loadLiveModel();
       if (!session) throw e;
-      setStatus(['✅ โมเดลพร้อมใช้งาน (โหมดสำรอง: YOLO ตัวเล็ก — โหลดตัวหลักไม่สำเร็จ)', '✅ Model ready (backup mode: small YOLO — main model failed to load)'], 'ok');
-    } catch (e2) { setStatus(['⚠️ โหลดโมเดล YOLO ไม่สำเร็จ — จะหากล้วยจากสีแทน (' + e.message + ')', '⚠️ YOLO failed to load — finding bananas by colour instead (' + e.message + ')'], 'err'); }
+      setStatus(['โมเดลพร้อมใช้งาน (โหมดสำรอง: YOLO ตัวเล็ก — โหลดตัวหลักไม่สำเร็จ)', 'Model ready (backup mode: small YOLO — main model failed to load)'], 'ok');
+    } catch (e2) { setStatus(['โหลดโมเดล YOLO ไม่สำเร็จ — จะหากล้วยจากสีแทน (' + e.message + ')', 'YOLO failed to load — finding bananas by colour instead (' + e.message + ')'], 'err'); }
   }
   $('camBtn').disabled = false;
   finishSplash();
@@ -790,16 +815,16 @@ function daysText(r) {
     // ประมาณวันที่จะสุก: ดัชนีความสุก e (0=ดิบสนิท, 1=เริ่มสุก, 2=สุก) แล้วประมาณเชิงเส้นเป็นช่วง ดิบสนิท ~6 วัน → เริ่มสุก ~2 วัน → สุก 0 วัน (กล้วยที่อุณหภูมิห้อง)
     const p = r.prob, e = Math.min(2, p[1] + 2 * (p[2] + p[3]));
     const d = e <= 1 ? 6 - 4 * e : 2 * (2 - e), lo = Math.max(0, Math.round(d - 1)), hi = Math.round(d + 1);
-    if (d < 1) return {short: T('<1 วัน', '<1 day'), long: T('⏳ ใกล้สุกแล้ว คาดว่าสุกภายใน 1 วัน (ที่อุณหภูมิห้อง)', '⏳ Almost ripe, expected within 1 day (at room temperature)')};
-    return {short: T(`สุกใน ~${Math.round(d)} วัน`, `ripe in ~${Math.round(d)} d`), long: T(`⏳ ยังไม่สุก คาดว่าจะสุกในอีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง ประมาณการจากสีเปลือก)`, `⏳ Not ripe yet, expected to ripen in about ${lo}–${hi} days (room temperature, estimated from peel colour)`)};
+    if (d < 1) return {short: T('<1 วัน', '<1 day'), long: T('ใกล้สุกแล้ว คาดว่าสุกภายใน 1 วัน (ที่อุณหภูมิห้อง)', 'Almost ripe, expected within 1 day (at room temperature)')};
+    return {short: T(`สุกใน ~${Math.round(d)} วัน`, `ripe in ~${Math.round(d)} d`), long: T(`ยังไม่สุก คาดว่าจะสุกในอีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง ประมาณการจากสีเปลือก)`, `Not ripe yet, expected to ripen in about ${lo}–${hi} days (room temperature, estimated from peel colour)`)};
   }
   if (r.name === 'Early-over') return {short: T('กินเร็วๆ นี้', 'eat soon'),
-    long: T('🍌 เริ่มงอม มีจุดน้ำตาลแล้ว หวานจัด ควรกินภายใน 1–2 วัน หรือเก็บแช่เย็นชะลอ จากนั้นเหมาะทำขนม/สมูตตี้', '🍌 Getting overripe with brown spots and very sweet. Eat within 1–2 days or refrigerate to slow it down, then use for baking or smoothies.')};
+    long: T('เริ่มงอม มีจุดน้ำตาลแล้ว หวานจัด ควรกินภายใน 1–2 วัน หรือเก็บแช่เย็นชะลอ จากนั้นเหมาะทำขนม/สมูตตี้', 'Getting overripe with brown spots and very sweet. Eat within 1–2 days or refrigerate to slow it down, then use for baking or smoothies.')};
   if (r.name === 'Overripe') return {short: T('ทำขนม', 'bake it'),
-    long: T('🍰 เหมาะทำขนม/สมูตตี้ — เปลือกดำไม่ได้แปลว่าเสีย ให้เช็กเนื้อใน กลิ่น และรา ก่อนกิน', '🍰 Good for baking or smoothies. A dark peel doesn’t mean it’s spoiled, but check the flesh, smell and mould before eating.')};
+    long: T('เหมาะทำขนม/สมูตตี้ — เปลือกดำไม่ได้แปลว่าเสีย ให้เช็กเนื้อใน กลิ่น และรา ก่อนกิน', 'Good for baking or smoothies. A dark peel doesn’t mean it’s spoiled, but check the flesh, smell and mould before eating.')};
   const d = r.days, lo = Math.max(0, Math.floor(d - DAYS.mae)), hi = Math.min(DAYS.max_day, Math.ceil(d + DAYS.mae));
-  if (hi <= 1) return {short: T('≤1 วัน', '≤1 day'), long: T('🗓️ ควรกินสดภายในวันนี้–พรุ่งนี้ จากนั้นเหมาะทำขนม/สมูตตี้', '🗓️ Best eaten fresh today or tomorrow, then good for baking or smoothies.')};
-  return {short: T(`~${Math.round(d)} วัน`, `~${Math.round(d)} d`), long: T(`🗓️ ยังกินสดอร่อยอีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง)`, `🗓️ Still good to eat fresh for about ${lo}–${hi} days (room temperature)`)};
+  if (hi <= 1) return {short: T('≤1 วัน', '≤1 day'), long: T('ควรกินสดภายในวันนี้–พรุ่งนี้ จากนั้นเหมาะทำขนม/สมูตตี้', 'Best eaten fresh today or tomorrow, then good for baking or smoothies.')};
+  return {short: T(`~${Math.round(d)} วัน`, `~${Math.round(d)} d`), long: T(`ยังกินสดอร่อยอีกประมาณ ${lo}–${hi} วัน (ที่อุณหภูมิห้อง)`, `Still good to eat fresh for about ${lo}–${hi} days (room temperature)`)};
 }
 
 
@@ -986,15 +1011,15 @@ function showResults(res, fallback) {
       `<details class="more"><summary>${T('ดูรายละเอียด', 'Details')}</summary>` +
       MODEL.classes.map((c, j) => `<div class="bar"><span>${LABELS[c][lang]}</span><div class="track"><div class="fill" style="width:${(r.prob[j]*100).toFixed(1)}%;background:${LABELS[c].color}"></div></div><span>${(r.prob[j]*100).toFixed(1)}%</span></div>`).join('') +
       (r.cmap ? `<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin:8px 0 2px"><div style="width:${r.cmap.green*100}%;background:#3caa28"></div><div style="width:${r.cmap.yellow*100}%;background:#ffc800"></div><div style="width:${r.cmap.brown*100}%;background:#6e3c19"></div></div>` +
-        `<div class="sub" style="font-size:13px">${T(`🎨 สีเปลือก: เขียว ${(r.cmap.green*100).toFixed(0)}% · เหลือง ${(r.cmap.yellow*100).toFixed(0)}% · น้ำตาล/จุดดำ ${(r.cmap.brown*100).toFixed(0)}%`, `🎨 Peel colour: green ${(r.cmap.green*100).toFixed(0)}% · yellow ${(r.cmap.yellow*100).toFixed(0)}% · brown/dark spots ${(r.cmap.brown*100).toFixed(0)}%`)}</div>` : '') +
-      (r.cnn ? `<div class="sub" style="font-size:13px">🧠 CNN: ${LABELS[MODEL.classes[r.cnn.indexOf(Math.max(...r.cnn))]][lang]} ${(Math.max(...r.cnn)*100).toFixed(0)}% · 🎨 HSV: ${LABELS[MODEL.classes[r.hsv.indexOf(Math.max(...r.hsv))]][lang]} ${(Math.max(...r.hsv)*100).toFixed(0)}%</div>` : '') +
-      (r.adjusted ? `<div class="sub" style="font-size:13px">${r.adjusted.why === 'green' ? T(`🟢 เปลือกยังเป็นสีเขียว ${(r.adjusted.green*100).toFixed(0)}%`, `🟢 Peel is still ${(r.adjusted.green*100).toFixed(0)}% green`) : r.adjusted.why === 'mixed' ? T(`🟡🟢 มีทั้งลูกเหลืองและลูกเขียว (เขียว ${(r.adjusted.green*100).toFixed(0)}%)`, `🟡🟢 Mix of yellow and green bananas (${(r.adjusted.green*100).toFixed(0)}% green)`) : T('🔍 สีเปลือกไม่มีจุดดำ/น้ำตาลมากพอจะเป็นงอม', '🔍 Not enough dark/brown spots on the peel to be overripe')}${T(' จึงปรับผล', ', so the result was adjusted')} (${T('ผลผสมเดิม', 'original blend:')} ${LABELS[r.adjusted.from][lang]} ${(r.adjusted.fromP*100).toFixed(0)}%)</div>` : '') +
+        `<div class="sub" style="font-size:13px">${T(`สีเปลือก: เขียว ${(r.cmap.green*100).toFixed(0)}% · เหลือง ${(r.cmap.yellow*100).toFixed(0)}% · น้ำตาล/จุดดำ ${(r.cmap.brown*100).toFixed(0)}%`, `Peel colour: green ${(r.cmap.green*100).toFixed(0)}% · yellow ${(r.cmap.yellow*100).toFixed(0)}% · brown/dark spots ${(r.cmap.brown*100).toFixed(0)}%`)}</div>` : '') +
+      (r.cnn ? `<div class="sub" style="font-size:13px">CNN: ${LABELS[MODEL.classes[r.cnn.indexOf(Math.max(...r.cnn))]][lang]} ${(Math.max(...r.cnn)*100).toFixed(0)}% · HSV: ${LABELS[MODEL.classes[r.hsv.indexOf(Math.max(...r.hsv))]][lang]} ${(Math.max(...r.hsv)*100).toFixed(0)}%</div>` : '') +
+      (r.adjusted ? `<div class="sub" style="font-size:13px">${r.adjusted.why === 'green' ? T(`เปลือกยังเป็นสีเขียว ${(r.adjusted.green*100).toFixed(0)}%`, `Peel is still ${(r.adjusted.green*100).toFixed(0)}% green`) : r.adjusted.why === 'mixed' ? T(`มีทั้งลูกเหลืองและลูกเขียว (เขียว ${(r.adjusted.green*100).toFixed(0)}%)`, `Mix of yellow and green bananas (${(r.adjusted.green*100).toFixed(0)}% green)`) : T('สีเปลือกไม่มีจุดดำ/น้ำตาลมากพอจะเป็นงอม', 'Not enough dark/brown spots on the peel to be overripe')}${T(' จึงปรับผล', ', so the result was adjusted')} (${T('ผลผสมเดิม', 'original blend:')} ${LABELS[r.adjusted.from][lang]} ${(r.adjusted.fromP*100).toFixed(0)}%)</div>` : '') +
       (fallback ? '' : `<div class="sub" style="font-size:13px">${r.blob ? T('YOLO ไม่เห็นกล้วย (อาจอยู่ในแพ็กเกจ) จึงหาจากบริเวณสีกล้วยแทน', 'YOLO didn’t see a banana (maybe in packaging), so it was found from banana-coloured areas') : r.extra ? T('YOLO มองข้ามลูกนี้ (อาจโดนฉลากบังหรือวางชิดลูกอื่น) จึงหาเพิ่มจากบริเวณสีกล้วย', 'YOLO missed this one (maybe a label covers it or it touches another), so it was added from banana-coloured areas') : T('YOLO มั่นใจว่าเป็นกล้วย ', 'YOLO is ') + (r.score*100).toFixed(0) + T('%', '% sure it’s a banana')}</div>`) + '</details></div>';
   }).join('');
   requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll('#items .pin').forEach(p => p.style.left = p.dataset.t + '%')));
   const w = $('warn'), msgs = [];
-  if (fallback) msgs.push(session ? T('⚠️ YOLO ไม่พบกล้วยในภาพ จึงวิเคราะห์สีทั้งภาพแทน ผลอาจคลาดเคลื่อน', '⚠️ YOLO found no banana, so the whole image was analysed by colour. Results may be off.') : T('⚠️ ไม่ได้ใช้ YOLO จึงวิเคราะห์สีทั้งภาพ', '⚠️ YOLO not used, so the whole image was analysed by colour.'));
-  if (res.some(r => Math.max(...r.prob) < 0.55)) msgs.push(T('🤔 บางจุดผลก้ำกึ่งระหว่างสองระดับ ลองถ่ายใหม่ในแสงที่สว่างขึ้น', '🤔 Some results sit between two stages. Try again in brighter light.'));
+  if (fallback) msgs.push(session ? T('YOLO ไม่พบกล้วยในภาพ จึงวิเคราะห์สีทั้งภาพแทน ผลอาจคลาดเคลื่อน', 'YOLO found no banana, so the whole image was analysed by colour. Results may be off.') : T('ไม่ได้ใช้ YOLO จึงวิเคราะห์สีทั้งภาพ', 'YOLO not used, so the whole image was analysed by colour.'));
+  if (res.some(r => Math.max(...r.prob) < 0.55)) msgs.push(T('บางจุดผลก้ำกึ่งระหว่างสองระดับ ลองถ่ายใหม่ในแสงที่สว่างขึ้น', 'Some results sit between two stages. Try again in brighter light.'));
   w.style.display = msgs.length ? 'block' : 'none'; w.innerHTML = msgs.join('<br>');
 }
 
@@ -1073,7 +1098,7 @@ $('camBtn').onclick = async () => {
     $('video').srcObject = stream; await $('video').play();
     $('view').style.display = 'block'; $('shoot').style.display = 'block'; camOn = true; renderDyn();
     lastResults = []; live = true; renderLoop(); setStep(1);
-    setStatus(['⏳ กำลังเตรียมโหมดกล้องสด…', '⏳ Preparing live camera…']); await loadLiveModel(); setStatus(['✅ โหมดกล้องสด — กด "หยุดภาพและดูผล" เพื่อวิเคราะห์ละเอียด', '✅ Live mode. Tap “Freeze & see result” for a detailed analysis.'], 'ok');
+    setStatus(['กำลังเตรียมโหมดกล้องสด…', 'Preparing live camera…']); await loadLiveModel(); setStatus(['โหมดกล้องสด — กด "หยุดภาพและดูผล" เพื่อวิเคราะห์ละเอียด', 'Live mode. Tap “Freeze & see result” for a detailed analysis.'], 'ok');
     analyzeLoop();
   } catch (e) { setStep(0); alert(T('เปิดกล้องไม่ได้: ', 'Can’t open the camera: ') + e.message + T('\nลองกด "อัปโหลดรูป" แทน', '\nTry “Upload photo” instead')); }
 };
@@ -1083,8 +1108,8 @@ $('shoot').onclick = async () => {               // หยุดภาพ แล
   stopCam(); busy = false; setStep(1);
   if (liveTask) await liveTask.catch(() => {});                                       // รอให้การวิเคราะห์สดที่ค้างอยู่จบก่อน
   frame.width = snapC.width; frame.height = snapC.height; fctx.drawImage(snapC, 0, 0);
-  if (modelReady) { setStatus(['⏳ รอโมเดลโหลดให้เสร็จก่อน…', '⏳ Waiting for the model to finish loading…']); await modelReady; }
-  setStatus(['🔍 กำลังวิเคราะห์ละเอียด…', '🔍 Running a detailed analysis…']);
+  if (modelReady) { setStatus(['รอโมเดลโหลดให้เสร็จก่อน…', 'Waiting for the model to finish loading…']); await modelReady; }
+  setStatus(['กำลังวิเคราะห์ละเอียด…', 'Running a detailed analysis…']);
   const {res, fallback} = await analyze();
   draw(res, fallback); showResults(res, fallback);
   setStatus('');
@@ -1097,17 +1122,18 @@ $('file').onchange = e => {
   const im = new Image();
   im.onload = async () => {
     await waitLive;
-    if (modelReady) { setStatus(['⏳ รอโมเดลโหลดให้เสร็จก่อน…', '⏳ Waiting for the model to finish loading…']); await modelReady; }
+    if (modelReady) { setStatus(['รอโมเดลโหลดให้เสร็จก่อน…', 'Waiting for the model to finish loading…']); await modelReady; }
     loadFrame(im, im.naturalWidth, im.naturalHeight); URL.revokeObjectURL(im.src);
-    setStatus(['🔍 กำลังวิเคราะห์…', '🔍 Analysing…']);
+    setStatus(['กำลังวิเคราะห์…', 'Analysing…']);
     const {res, fallback} = await analyze();
     $('view').style.display = 'block'; draw(res, fallback); showResults(res, fallback);
-    setStatus(session ? '' : ['⚠️ ไม่ได้ใช้ YOLO', '⚠️ YOLO not used'], session ? 'ok' : 'err');
+    setStatus(session ? '' : ['ไม่ได้ใช้ YOLO', 'YOLO not used'], session ? 'ok' : 'err');
     $('view').scrollIntoView({behavior:'smooth', block:'start'});
   };
   im.src = URL.createObjectURL(f); e.target.value = '';
 };
 modelReady = loadModel();
+renderDyn();
 $('langBtn').onclick = () => setLang(lang === 'en' ? 'th' : 'en');
 if (lang === 'en') setLang('en'); else document.documentElement.lang = 'th';
 $('mapBtn').onclick = () => {
