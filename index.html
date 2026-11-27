@@ -560,7 +560,7 @@ const CNN_FILE = 'ripeness_cnn.onnx';  // CNN (YOLOv8n-cls) เทรนเอ�
 const CNN_SIZE = 224;
 // ผสมผล: CNN 80% + HSV/Logistic Regression 20% แล้วตรวจด้วยกฎสีเขียว + กฎกันทาย "งอม" เกินจริง
 // (ค่าเหล่านี้เลือกจากการทดสอบ: ชุด test 96.8%, ชุดจำลองแพ็กเกจ 93.6%, รูปจริง 34/35)
-const FUSE = {w_cnn: 0.8, green_to_unripe: 0.4, green_to_semi: 0.2, over_veto: 0.1, mixed_yellow: 0.3, mixed_cnn: 0.9, cnn_trust: 0.9};
+const FUSE = {w_cnn: 0.8, green_to_unripe: 0.4, green_to_semi: 0.2, over_veto: 0.1, mixed_yellow: 0.3, mixed_cnn: 0.9, cnn_trust: 0.9, over_trust: 0.7};
 const BANANA_ROW = 4 + 46;             // แถวคะแนนของคลาส banana (COCO id 46)
 const CONF = 0.2;
 const CAM_CROP = 0.8;                   // กล้อง: ใช้ 80% ตรงกลางของภาพ (สี่เหลี่ยมจัตุรัส)
@@ -1046,7 +1046,8 @@ function extraBoxes(boxes) {
 // กฎตรวจหลังผสมผล (ค่าเกณฑ์เลือกจากการทดสอบ)
 // 1) สีเขียว: ในชุดเทรน กล้วย "สุก" มีพิกเซลสีเขียวแทบไม่เกิน 5% → ถ้าเปลือกเขียว ≥40% = ดิบ, ≥20% (แต่ทายว่าสุก/งอม) = เริ่มสุก
 //    ยกเว้นหวีที่มีลูกเหลืองปนลูกเขียว (สีเหลือง ≥30% และ CNN มั่นใจว่าสุก ≥90%) = เริ่มสุก
-// 2) กันทาย "งอม" เกินจริง: รอยยับ/ตัวหนังสือบนถุงพลาสติกอาจหลอก CNN ว่าเป็นจุดดำ → ถ้า HSV ให้โอกาสงอม < 10% ให้ถือว่าสุก
+// 2) กันทาย "งอม" เกินจริง: รอยยับ/ตัวหนังสือบนถุงพลาสติกอาจหลอก CNN ว่าเป็นจุดดำ → ถ้า HSV ให้โอกาสงอม < 10% ให้ถือว่าสุก (ยกเว้น CNN มั่นใจว่างอม ≥70%)
+//    และถ้า CNN มั่นใจว่าสุก ≥90% จะไม่ใช้กฎสีเขียว→เริ่มสุก (ลายเขียวบนถุงหลอกได้)
 function fuseRules(prob, hsv, features, cnn) {
   const gr = features[8], ye = features[9], p = [...prob], top = () => p.indexOf(Math.max(...p));
   const from = MODEL.classes[top()], fromP = Math.max(...p);
@@ -1055,7 +1056,7 @@ function fuseRules(prob, hsv, features, cnn) {
   if (gr >= FUSE.green_to_unripe && top() !== 0 && !(mixedBunch && top() >= 2)) { p[0] += p[1] + p[2] + p[3]; p[1] = p[2] = p[3] = 0; why = 'green'; }
   else if (gr >= FUSE.green_to_unripe && mixedBunch && top() >= 2) { p[1] += p[2] + p[3]; p[2] = p[3] = 0; why = 'mixed'; }
   else if (gr >= FUSE.green_to_semi && top() >= 2 && !(cnn && cnn[2] + cnn[3] >= FUSE.cnn_trust)) { p[1] += p[2] + p[3]; p[2] = p[3] = 0; why = 'green'; }   // CNN มั่นใจว่าสุก ≥90% → เชื่อ CNN (สีเขียวอาจมาจากลายถุง)
-  if (top() === 3 && hsv[3] < FUSE.over_veto) { p[2] += p[3]; p[3] = 0; why = 'over'; }
+  if (top() === 3 && hsv[3] < FUSE.over_veto && !(cnn && cnn[3] >= FUSE.over_trust)) { p[2] += p[3]; p[3] = 0; why = 'over'; }   // CNN มั่นใจว่างอม ≥70% → ไม่ปัดเป็นสุก
   return {prob: p, adjusted: why ? {why, from, fromP, green: gr} : null};
 }
 
