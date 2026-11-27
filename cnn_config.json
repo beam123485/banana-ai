@@ -9,15 +9,15 @@
  ],
  "w_cnn": 1.0,
  "test_acc": {
-  "HSV + Logistic Regression": 85.56,
-  "CNN (YOLOv8n-cls)": 94.87,
-  "ผสม CNN 1.0 + HSV 0.0": 94.87,
-  "ผสม + กฎสีเขียว (แบบในเว็บ)": 91.95
+  "HSV + Logistic Regression": 83.68,
+  "CNN (YOLOv8n-cls)": 93.49,
+  "ผสม CNN 1.0 + HSV 0.0": 93.49,
+  "ผสม + กฎสีเขียว (แบบในเว็บ)": 91.32
  },
  "test_acc_pkg": {
-  "HSV + Logistic Regression": 80.65,
-  "CNN (YOLOv8n-cls)": 93.1,
-  "ผสม CNN 1.0 + HSV 0.0": 93.1
+  "HSV + Logistic Regression": 80.21,
+  "CNN (YOLOv8n-cls)": 92.53,
+  "ผสม CNN 1.0 + HSV 0.0": 92.53
  },
- "test_acc_real_coco": 86.05
+ "test_acc_real_coco": 88.65
 }
