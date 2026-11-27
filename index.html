@@ -1184,7 +1184,7 @@ function loadFrame(src, sw, sh, crop, cv = frame, cx = fctx) {
   cx.drawImage(src, sx, sy, sw, sh, 0, 0, W, H);
 }
 
-// โหมดกล้อง: แยก 2 ลูป — ลูปแสดงภาพ (ทุกเฟรม ลื่น) กับลูปวิเคราะห์ (ทำเมื่อว่าง ด้วย YOLO ตัวเล็ก)
+// โหมดกล้อง: ลูปแสดงภาพอย่างเดียว (ลื่น) แล้ววิเคราะห์ละเอียดตอนกดหยุดภาพ (analyzeLoop เก็บไว้ ไม่ได้เรียกใช้แล้ว)
 function renderLoop() {
   if (!live) return;
   const v = $('video');
@@ -1249,9 +1249,9 @@ $('camBtn').onclick = async () => {
     stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment', width:{ideal:1280}}, audio:false});
     $('video').srcObject = stream; await $('video').play();
     $('view').style.display = 'block'; $('shoot').style.display = 'block'; camOn = true; renderDyn();
-    lastResults = []; live = true; renderLoop(); setStep(1);
-    setStatus(['กำลังเตรียมโหมดกล้องสด…', 'Preparing live camera…']); await loadLiveModel(); setStatus(['โหมดกล้องสด — กด "หยุดภาพและดูผล" เพื่อวิเคราะห์ละเอียด', 'Live mode. Tap “Freeze & see result” for a detailed analysis.'], 'ok');
-    analyzeLoop();
+    lastResults = []; tracks = []; live = true; renderLoop(); setStep(1);
+    // ไม่วิเคราะห์ระหว่างส่องกล้อง (ให้ภาพลื่น) — วิเคราะห์ครั้งเดียวตอนกด "หยุดภาพและดูผล"
+    setStatus(['เล็งกล้วยให้อยู่ในภาพ แล้วกด "หยุดภาพและดูผล"', 'Aim at the bananas, then tap “Freeze & see result”.'], 'ok');
   } catch (e) { setStep(0); alert(T('เปิดกล้องไม่ได้: ', 'Can’t open the camera: ') + e.message + T('\nลองกด "อัปโหลดรูป" แทน', '\nTry “Upload photo” instead')); }
 };
 $('shoot').onclick = async () => {               // หยุดภาพ แล้ววิเคราะห์ใหม่ด้วย YOLOv8s ตัวหลัก (แม่นกว่า)
