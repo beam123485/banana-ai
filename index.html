@@ -428,7 +428,7 @@
     <h3>เทคโนโลยี</h3>
     <ul>
       <li>YOLOv8 หากล้วย</li>
-      <li>CNN (YOLOv8n-cls) และ HSV + Logistic Regression ประเมินความสุก</li>
+      <li>CNN (YOLOv8s-cls) และ HSV + Logistic Regression ประเมินความสุก</li>
       <li>Linear Regression ประมาณวันที่ยังกินได้</li>
       <li>onnxruntime-web ให้ AI ทำงานในเบราว์เซอร์</li>
     </ul>
@@ -498,7 +498,7 @@ const EN = {
   '"เริ่มงอม" มาจากกฎผสมผล ไม่ใช่คลาสที่ฝึกโดยตรง': '“Early overripe” comes from a combination rule, not a directly trained class.',
   'เทคโนโลยี': 'Technology',
   'YOLOv8 หากล้วย': 'YOLOv8 finds the bananas',
-  'CNN (YOLOv8n-cls) และ HSV + Logistic Regression ประเมินความสุก': 'CNN (YOLOv8n-cls) and HSV + Logistic Regression judge ripeness',
+  'CNN (YOLOv8s-cls) และ HSV + Logistic Regression ประเมินความสุก': 'CNN (YOLOv8s-cls) and HSV + Logistic Regression judge ripeness',
   'Linear Regression ประมาณวันที่ยังกินได้': 'Linear Regression estimates the days left',
   'onnxruntime-web ให้ AI ทำงานในเบราว์เซอร์': 'onnxruntime-web runs the AI in the browser',
 };
@@ -556,7 +556,7 @@ const YOLO_PARTS = ['yolo_s416.part1', 'yolo_s416.part2', 'yolo_s416.part3', 'yo
 const YOLO_SIZE = 416;
 const LIVE_YOLO = 'yolo_coco.onnx';  // YOLOv8n ตัวเล็ก ใช้ตอนส่องกล้องสด (เร็วกว่า YOLOv8s ~3 เท่า)
 const VERIFIER_FILE = 'banana_verifier.onnx', VERIFIER_CFG = 'verifier_config.json';   // ตัวตรวจสอบว่ากรอบเป็นกล้วยจริงไหม (train_verifier.py) ไม่มีไฟล์ก็ใช้งานได้ตามปกติ
-const CNN_FILE = 'ripeness_cnn.onnx';  // CNN (YOLOv8n-cls) เทรนเองจาก train_cnn.py
+const CNN_FILE = 'ripeness_cnn.onnx';  // CNN (YOLOv8s-cls) เทรนเองจาก train_cnn.py
 const CNN_SIZE = 224;
 // ผสมผล: CNN 80% + HSV/Logistic Regression 20% แล้วตรวจด้วยกฎสีเขียว + กฎกันทาย "งอม" เกินจริง
 // (ค่าเหล่านี้เลือกจากการทดสอบ: ชุด test 96.8%, ชุดจำลองแพ็กเกจ 93.6%, รูปจริง 34/35)
