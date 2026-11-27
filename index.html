@@ -906,7 +906,21 @@ async function ripeness(x1, y1, x2, y2) {
   const cmap = colorMap(pix, ax, ay, bx - ax, by - ay);
   const hsv = predict(features, MODEL), cnn = await cnnPredict(ax, ay, bx - ax, by - ay);
   const mixed = cnn ? cnn.map((c, i) => FUSE.w_cnn * c + (1 - FUSE.w_cnn) * hsv[i]) : hsv;
-  const {prob, adjusted} = fuseRules(mixed, hsv, features, cnn);
+  let {prob, adjusted} = fuseRules(mixed, hsv, features, cnn);
+  // หวีที่สุกไม่เท่ากัน (เช่น ฝั่งหนึ่งเหลือง อีกฝั่งยังเขียว): แบ่งกรอบครึ่งตามด้านยาวแล้วให้ CNN ดูแยก
+  // ถ้าครึ่งหนึ่งดิบ ≥60% อีกครึ่งสุก/งอม ≥60% และในกรอบมีทั้งสีเขียว ≥30% และเหลือง ≥30% → ถือว่า "เริ่มสุก (หวีปน)"
+  const top = prob.indexOf(Math.max(...prob)), gr = features[8], ye = features[9];
+  if (cnn && top !== 1 && gr >= 0.3 && ye >= 0.3) {
+    const bw = bx - ax, bh = by - ay, wide = bw >= bh;
+    const a = await cnnPredict(ax, ay, wide ? bw / 2 : bw, wide ? bh : bh / 2);
+    const b = await cnnPredict(wide ? ax + bw / 2 : ax, wide ? ay : ay + bh / 2, wide ? bw / 2 : bw, wide ? bh : bh / 2);
+    const ga = a[0], gb = b[0], ra = a[2] + a[3], rb = b[2] + b[3];
+    if ((ga >= 0.6 && rb >= 0.6) || (gb >= 0.6 && ra >= 0.6)) {
+      const conf = Math.max(Math.min(ga, rb), Math.min(gb, ra));
+      adjusted = {why: 'mixed', from: MODEL.classes[top], fromP: prob[top], green: gr};
+      prob = [(1 - conf) / 2, conf, (1 - conf) / 2, 0];
+    }
+  }
   return {prob, adjusted, cnn, hsv, cmap, days: daysLeft(features)};
 }
 
@@ -1161,7 +1175,7 @@ function showResults(res, fallback, notBanana = null) {
       (r.cmap ? `<div style="display:flex;height:10px;border-radius:5px;overflow:hidden;margin:8px 0 2px"><div style="width:${r.cmap.green*100}%;background:#3caa28"></div><div style="width:${r.cmap.yellow*100}%;background:#ffc800"></div><div style="width:${r.cmap.brown*100}%;background:#6e3c19"></div></div>` +
         `<div class="sub" style="font-size:13px">${T(`สีเปลือก: เขียว ${(r.cmap.green*100).toFixed(0)}% · เหลือง ${(r.cmap.yellow*100).toFixed(0)}% · น้ำตาล/จุดดำ ${(r.cmap.brown*100).toFixed(0)}%`, `Peel colour: green ${(r.cmap.green*100).toFixed(0)}% · yellow ${(r.cmap.yellow*100).toFixed(0)}% · brown/dark spots ${(r.cmap.brown*100).toFixed(0)}%`)}</div>` : '') +
       (r.cnn ? `<div class="sub" style="font-size:13px">CNN: ${LABELS[MODEL.classes[r.cnn.indexOf(Math.max(...r.cnn))]][lang]} ${(Math.max(...r.cnn)*100).toFixed(0)}% · HSV: ${LABELS[MODEL.classes[r.hsv.indexOf(Math.max(...r.hsv))]][lang]} ${(Math.max(...r.hsv)*100).toFixed(0)}%</div>` : '') +
-      (r.adjusted ? `<div class="sub" style="font-size:13px">${r.adjusted.why === 'green' ? T(`เปลือกยังเป็นสีเขียว ${(r.adjusted.green*100).toFixed(0)}%`, `Peel is still ${(r.adjusted.green*100).toFixed(0)}% green`) : r.adjusted.why === 'mixed' ? T(`มีทั้งลูกเหลืองและลูกเขียว (เขียว ${(r.adjusted.green*100).toFixed(0)}%)`, `Mix of yellow and green bananas (${(r.adjusted.green*100).toFixed(0)}% green)`) : T('สีเปลือกไม่มีจุดดำ/น้ำตาลมากพอจะเป็นงอม', 'Not enough dark/brown spots on the peel to be overripe')}${T(' จึงปรับผล', ', so the result was adjusted')} (${T('ผลผสมเดิม', 'original blend:')} ${LABELS[r.adjusted.from][lang]} ${(r.adjusted.fromP*100).toFixed(0)}%)</div>` : '') +
+      (r.adjusted ? `<div class="sub" style="font-size:13px">${r.adjusted.why === 'green' ? T(`เปลือกยังเป็นสีเขียว ${(r.adjusted.green*100).toFixed(0)}%`, `Peel is still ${(r.adjusted.green*100).toFixed(0)}% green`) : r.adjusted.why === 'mixed' ? T(`หวีนี้สุกไม่เท่ากัน มีทั้งลูกเหลืองและลูกเขียว (เขียว ${(r.adjusted.green*100).toFixed(0)}%)`, `Mix of yellow and green bananas (${(r.adjusted.green*100).toFixed(0)}% green)`) : T('สีเปลือกไม่มีจุดดำ/น้ำตาลมากพอจะเป็นงอม', 'Not enough dark/brown spots on the peel to be overripe')}${T(' จึงปรับผล', ', so the result was adjusted')} (${T('ผลผสมเดิม', 'original blend:')} ${LABELS[r.adjusted.from][lang]} ${(r.adjusted.fromP*100).toFixed(0)}%)</div>` : '') +
       (fallback ? '' : `<div class="sub" style="font-size:13px">${r.blob ? T('YOLO ไม่เห็นกล้วย (อาจอยู่ในแพ็กเกจ) จึงหาจากบริเวณสีกล้วยแทน', 'YOLO didn’t see a banana (maybe in packaging), so it was found from banana-coloured areas') : r.extra ? T('YOLO มองข้ามลูกนี้ (อาจโดนฉลากบังหรือวางชิดลูกอื่น) จึงหาเพิ่มจากบริเวณสีกล้วย', 'YOLO missed this one (maybe a label covers it or it touches another), so it was added from banana-coloured areas') : T('YOLO มั่นใจว่าเป็นกล้วย ', 'YOLO is ') + (r.score*100).toFixed(0) + T('%', '% sure it’s a banana')}</div>`) + '</details></div>';
   }).join('');
   requestAnimationFrame(() => requestAnimationFrame(() => document.querySelectorAll('#items .pin').forEach(p => p.style.left = p.dataset.t + '%')));
