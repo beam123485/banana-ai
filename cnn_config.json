@@ -7,16 +7,17 @@
   "Ripe",
   "Overripe"
  ],
- "w_cnn": 0.8,
+ "w_cnn": 1.0,
  "test_acc": {
-  "HSV + Logistic Regression": 87.36,
-  "CNN (YOLOv8n-cls)": 95.4,
-  "ผสม CNN 0.8 + HSV 0.2": 95.52,
-  "ผสม + กฎสีเขียว (แบบในเว็บ)": 92.41
+  "HSV + Logistic Regression": 85.56,
+  "CNN (YOLOv8n-cls)": 94.87,
+  "ผสม CNN 1.0 + HSV 0.0": 94.87,
+  "ผสม + กฎสีเขียว (แบบในเว็บ)": 91.95
  },
  "test_acc_pkg": {
-  "HSV + Logistic Regression": 80.23,
-  "CNN (YOLOv8n-cls)": 94.14,
-  "ผสม CNN 0.8 + HSV 0.2": 93.79
- }
+  "HSV + Logistic Regression": 80.65,
+  "CNN (YOLOv8n-cls)": 93.1,
+  "ผสม CNN 1.0 + HSV 0.0": 93.1
+ },
+ "test_acc_real_coco": 86.05
 }
